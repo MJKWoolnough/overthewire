@@ -43,8 +43,8 @@ var commands = [...]string{
 	"echo -n \"Password:\";cat data.txt | tr '[A-Za-z]' '[N-ZA-Mn-za-m]' | sed -e 's/.* //'",
 	//level 12
 	"echo -n \"Password:\";" +
-		"mkdir /tmp/otw-123456789;" +
-		"cd /tmp/otw-123456789;" +
+		"tmpDir=\"$(mktemp -d)\";" +
+		"cd \"$tmpDir\";" +
 		"xxd -r ~/data.txt ./data.bin;" +
 		"while true; do" +
 		"       case \"$(file -b --mime-type data.bin)\" in" +
@@ -65,7 +65,7 @@ var commands = [...]string{
 		"       esac;" +
 		"done;" +
 		"cd;" +
-		"rm -rf /tmp/otw-123456789;",
+		"rm -rf \"$tmpDir\";",
 	//level 13
 	"echo -n \"Password:\";ssh -o StrictHostKeyChecking=no -i sshkey.private bandit14@127.0.0.1 cat /etc/bandit_pass/bandit14 2> /dev/null",
 	//level 14
@@ -74,12 +74,13 @@ var commands = [...]string{
 	"echo -n \"Password:\";echo %q | openssl s_client -ign_eof -connect 127.0.0.1:30001 2> /dev/null | grep -A1 \"Correct\" | grep -v \"Correct\" | tr -d '\\r\\n';echo",
 	//level 16
 	"echo -n \"Password:\";" +
+		"tmpFile=\"$(mktemp)\";" +
 		"nmap -p 31000-32000 127.0.0.1 | grep \"/tcp\" | sed -e 's@^\\([0-9]*\\)/.*@\\1@' | while read port; do" +
 		"       (echo %q;sleep 2s) | openssl s_client -connect 127.0.0.1:\"$port\";" +
-		"done 2> /dev/null | grep -A 27 Correct | grep -v Correct > /tmp/private-123456789.key;" +
-		"chmod 600 /tmp/private-123456789.key;" +
-		"ssh -o StrictHostKeyChecking=no -i /tmp/private-123456789.key bandit17@127.0.0.1 cat /etc/bandit_pass/bandit17 2> /dev/null;" +
-		"rm -f /tmp/private-123456789.key;",
+		"done 2> /dev/null | grep -A 27 Correct | grep -v Correct > \"$tmpFile\";" +
+		"chmod 600 \"$tmpFile\";" +
+		"ssh -o StrictHostKeyChecking=no -i \"$tmpFile\" bandit17@127.0.0.1 cat /etc/bandit_pass/bandit17 2> /dev/null;" +
+		"rm -f \"$tmpFile\";",
 	//level 17
 	"echo -n \"Password:\";diff passwords.old passwords.new | tail -n1 | cut -d' ' -f2",
 	//level 18
@@ -93,7 +94,17 @@ var commands = [...]string{
 	//level 22
 	"echo -n \"Password:\";cat /tmp/\"$(bash -c \"myname=bandit23;$(cat \"$(grep -v reboot /etc/cron.d/cronjob_bandit23 | cut -d' ' -f7)\" | grep mytarget=);echo \\$mytarget\")\"",
 	//level 23
-	"echo -n \"Password:\";echo \"cat /etc/bandit_pass/bandit24 > /tmp/bandit24-123456789;sleep 10s;rm -f /tmp/bandit-1234567890\" > /var/spool/bandit24/runner-123456789;chmod +x /var/spool/bandit24/runner-123456789;until [ -f /tmp/bandit24-123456789 ]; do sleep 1s; done; cat /tmp/bandit24-123456789;",
+	"echo -n \"Password:\";" +
+		"tmpFile=\"$(mktemp)\";" +
+		"chmod 666 \"$tmpFile\";" +
+		"xFile=\"$(mktemp -p /var/spool/bandit24/)\";" +
+		"echo \"cat /etc/bandit_pass/bandit24 > $tmpFile\" > \"$xFile\";" +
+		"chmod 777 \"$xFile\";" +
+		"until [ -s \"$tmpFile\" ]; do" +
+		"	sleep 1s;" +
+		"done;" +
+		"cat \"$tmpFile\";" +
+		"rm -f \"tmpFile\";",
 }
 
 func main() {
