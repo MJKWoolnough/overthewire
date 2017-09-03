@@ -24,6 +24,8 @@ var commands = [...]string{
 	"echo -n \"Password:\";cat \"spaces in this filename\"",
 	//level 3
 	"echo -n \"Password:\";cat inhere/.hidden",
+	//level 4
+	"echo -n \"Password:\";find inhere -type f | while read file; do file \"$file\" | grep \"ASCII text\" > /dev/null && cat \"$file\" && break;done",
 }
 
 func main() {
