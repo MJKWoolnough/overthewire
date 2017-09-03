@@ -34,6 +34,8 @@ var commands = [...]string{
 	"echo -n \"Password:\";grep millionth data.txt | sed -e 's/^millionth[ 	]*//'",
 	//level 8
 	"echo -n \"Password:\";sort data.txt | uniq -u",
+	//level 9
+	"echo -n \"Password:\";strings ./data.txt | grep \"==\" | cut -d' ' -f2 | tail -n1",
 }
 
 func main() {
