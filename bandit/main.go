@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/MJKWoolnough/memio"
 	"github.com/MJKWoolnough/overthewire/ssh"
@@ -29,7 +30,7 @@ var commands = [...]string{
 	//level 5
 	"echo -n \"Password:\";find inhere -type f -size 1033c ! -executable  | while read file; do file \"$file\" | grep \"ASCII text\" > /dev/null && cat \"$file\" && break;done | tr -d ' '",
 	//level 6
-	"echo -n \"Password:\";find / -type f -group bandit6 -user bandit7 -size 33c | while read file; do file \"$file\" | grep \"ASCII text\" > /dev/null && cat \"$file\" && break;done | tr -d ' '",
+	"echo -n \"Password:\";find / -type f -group bandit6 -user bandit7 -size 33c 2>/dev/null | while read file; do file \"$file\" | grep \"ASCII text\" > /dev/null && cat \"$file\" && break;done | tr -d ' '",
 	//level 7
 	"echo -n \"Password:\";grep millionth data.txt | sed -e 's/^millionth[ 	]*//'",
 	//level 8
@@ -66,7 +67,9 @@ var commands = [...]string{
 		"cd;" +
 		"rm -rf /tmp/otw-123456789;",
 	//level 13
-	"echo -n \"Password:\";ssh -o StrictHostKeyChecking=no -i sshkey.private bandit14@127.0.0.1 cat /etc/bandit_pass/bandit14",
+	"echo -n \"Password:\";ssh -o StrictHostKeyChecking=no -i sshkey.private bandit14@127.0.0.1 cat /etc/bandit_pass/bandit14 2> /dev/null",
+	//level 14
+	"echo -n \"Password:\";echo %q | nc 127.0.0.1 30000 | grep -v \"Correct\" | tr -d '\\r\\n';echo",
 }
 
 func main() {
@@ -83,6 +86,10 @@ func main() {
 
 	for n, cmds := range commands[level:] {
 		log.Printf("Level %d: Sending Commands...\n", n)
+
+		if strings.Contains(cmds, "%q") {
+			cmds = fmt.Sprintf(cmds, password)
+		}
 
 		err := ssh.RunCommands(host, fmt.Sprintf(username, n), password, cmds, &stdout, os.Stderr)
 		if err != nil {
