@@ -65,6 +65,8 @@ var commands = [...]string{
 		"done;" +
 		"cd;" +
 		"rm -rf /tmp/otw-123456789;",
+	//level 13
+	"echo -n \"Password:\";ssh -o StrictHostKeyChecking=no -i sshkey.private bandit14@127.0.0.1 cat /etc/bandit_pass/bandit14",
 }
 
 func main() {
