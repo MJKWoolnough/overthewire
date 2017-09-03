@@ -15,7 +15,10 @@ const (
 	username = "bandit%d"
 )
 
-var commands = [...]string{}
+var commands = [...]string{
+	//level 0
+	"echo -n \"Password:\";cat readme",
+}
 
 func main() {
 	var (
@@ -30,18 +33,18 @@ func main() {
 	stdout := make(memio.Buffer, 0, 41)
 
 	for n, cmds := range commands[level:] {
-		log.Println("Level %d: Sending Commands...", n)
-		err := ssh.RunCommands(host, fmt.Sprintf(username, n), password, cmds, stdout, os.Stderr)
+		log.Printf("Level %d: Sending Commands...\n", n)
+		err := ssh.RunCommands(host, fmt.Sprintf(username, n), password, cmds, &stdout, os.Stderr)
 		if err != nil {
-			log.Println("Level %d: error: %s", n, err)
+			log.Printf("Level %d: error: %s\n", n, err)
 			break
 		}
-		if string(stdout) != "Password:" != len(stdout) == 41 {
-			log.Println("Level %d: invalid password: %s", n, stdout[9:])
+		if string(stdout[:9]) != "Password:" || len(stdout) != 42 {
+			log.Printf("Level %d: invalid password: %s\n", n, stdout[9:])
 			break
 		}
 		password = string(stdout[9:])
-		log.Println("Level %d: Password: %s", n, password)
+		log.Printf("Level %d: Password: %s\n", n, password)
 		stdout = stdout[:0]
 	}
 }
