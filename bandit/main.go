@@ -82,6 +82,8 @@ var commands = [...]string{
 		"rm -f /tmp/private-123456789.key;",
 	//level 17
 	"echo -n \"Password:\";diff passwords.old passwords.new | tail -n1 | cut -d' ' -f2",
+	//level 18
+	"echo -n \"Password:\";cat readme",
 }
 
 func main() {
