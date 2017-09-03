@@ -1,32 +1,32 @@
 package ssh
 
 import (
-	"log"
-	"os"
+	"io"
 
 	"golang.org/x/crypto/ssh"
 )
 
-func RunCommands(server, username, password, commands string) {
-	logger := log.New(os.Stderr, username+": ", 0)
-	logger.Println("Dialing...")
+func RunCommands(server, username, password, commands string, stdout, stderr io.Writer) error {
 	s, err := ssh.Dial("tcp", server, &ssh.ClientConfig{
 		User:            username,
 		Auth:            []ssh.AuthMethod{ssh.Password(password)},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	})
 	if err != nil {
-		logger.Fatal(err)
+		return err
 	}
-	logger.Println("...Connected")
 	session, err := s.NewSession()
 	if err != nil {
-		logger.Fatal(err)
+		return err
 	}
-	defer session.Close()
-	session.Stdout = os.Stdout
+
+	session.Stdout = stdout
+	session.Stderr = stderr
+
 	err = session.Run(commands)
+	session.Close()
 	if err != nil {
-		logger.Fatal(err)
+		return err
 	}
+	return nil
 }
