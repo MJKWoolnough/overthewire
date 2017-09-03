@@ -32,6 +32,8 @@ var commands = [...]string{
 	"echo -n \"Password:\";find / -type f -group bandit6 -user bandit7 -size 33c | while read file; do file \"$file\" | grep \"ASCII text\" > /dev/null && cat \"$file\" && break;done | tr -d ' '",
 	//level 7
 	"echo -n \"Password:\";grep millionth data.txt | sed -e 's/^millionth[ 	]*//'",
+	//level 8
+	"echo -n \"Password:\";sort data.txt | uniq -u",
 }
 
 func main() {
