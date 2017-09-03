@@ -103,6 +103,7 @@ func main() {
 	stdout := make(memio.Buffer, 0, 41)
 
 	for n, cmds := range commands[level:] {
+		n += int(level)
 		log.Printf("Level %2d: Sending Commands...\n", n)
 
 		if strings.Contains(cmds, "%q") {
