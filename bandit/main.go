@@ -84,6 +84,8 @@ var commands = [...]string{
 	"echo -n \"Password:\";diff passwords.old passwords.new | tail -n1 | cut -d' ' -f2",
 	//level 18
 	"echo -n \"Password:\";cat readme",
+	//level 19
+	"echo -n \"Password:\";./bandit20-do cat /etc/bandit_pass/bandit20",
 }
 
 func main() {
