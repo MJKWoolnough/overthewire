@@ -18,6 +18,8 @@ const (
 var commands = [...]string{
 	//level 0
 	"echo -n \"Password:\";cat readme",
+	//level 1
+	"echo -n \"Password:\";cat ./-",
 }
 
 func main() {
@@ -34,6 +36,7 @@ func main() {
 
 	for n, cmds := range commands[level:] {
 		log.Printf("Level %d: Sending Commands...\n", n)
+
 		err := ssh.RunCommands(host, fmt.Sprintf(username, n), password, cmds, &stdout, os.Stderr)
 		if err != nil {
 			log.Printf("Level %d: error: %s\n", n, err)
