@@ -22,6 +22,8 @@ var commands = [...]string{
 	"echo -n \"Password:\";cat ./-",
 	//level 2
 	"echo -n \"Password:\";cat \"spaces in this filename\"",
+	//level 3
+	"echo -n \"Password:\";cat inhere/.hidden",
 }
 
 func main() {
