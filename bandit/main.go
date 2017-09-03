@@ -70,6 +70,8 @@ var commands = [...]string{
 	"echo -n \"Password:\";ssh -o StrictHostKeyChecking=no -i sshkey.private bandit14@127.0.0.1 cat /etc/bandit_pass/bandit14 2> /dev/null",
 	//level 14
 	"echo -n \"Password:\";echo %q | nc 127.0.0.1 30000 | grep -v \"Correct\" | tr -d '\\r\\n';echo",
+	//level 15
+	"echo -n \"Password:\";echo %q | openssl s_client -ign_eof -connect 127.0.0.1:30001 2> /dev/null | grep -A1 \"Correct\" | grep -v \"Correct\" | tr -d '\\r\\n';echo",
 }
 
 func main() {
