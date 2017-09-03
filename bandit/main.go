@@ -90,6 +90,8 @@ var commands = [...]string{
 	"echo -n \"Password:\";(echo %q | nc -l 127.0.0.1 8080) & sleep 1s;./suconnect 8080 &> /dev/null",
 	//level 21
 	"echo -n \"Password:\";cat \"$(grep chmod \"$(grep -v reboot /etc/cron.d/cronjob_bandit22 | cut -d' ' -f7)\" | cut -d' ' -f3)\"",
+	//level 22
+	"echo -n \"Password:\";cat /tmp/\"$(bash -c \"myname=bandit23;$(cat \"$(grep -v reboot /etc/cron.d/cronjob_bandit23 | cut -d' ' -f7)\" | grep mytarget=);echo \\$mytarget\")\"",
 }
 
 func main() {
