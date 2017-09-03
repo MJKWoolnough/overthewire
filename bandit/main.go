@@ -80,6 +80,8 @@ var commands = [...]string{
 		"chmod 600 /tmp/private-123456789.key;" +
 		"ssh -o StrictHostKeyChecking=no -i /tmp/private-123456789.key bandit17@127.0.0.1 cat /etc/bandit_pass/bandit17 2> /dev/null;" +
 		"rm -f /tmp/private-123456789.key;",
+	//level 17
+	"echo -n \"Password:\";diff passwords.old passwords.new | tail -n1 | cut -d' ' -f2",
 }
 
 func main() {
