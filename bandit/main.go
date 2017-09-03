@@ -103,7 +103,7 @@ func main() {
 	stdout := make(memio.Buffer, 0, 41)
 
 	for n, cmds := range commands[level:] {
-		log.Printf("Level %d: Sending Commands...\n", n)
+		log.Printf("Level %2d: Sending Commands...\n", n)
 
 		if strings.Contains(cmds, "%q") {
 			cmds = fmt.Sprintf(cmds, password)
@@ -111,15 +111,15 @@ func main() {
 
 		err := ssh.RunCommands(host, fmt.Sprintf(username, n), password, cmds, &stdout, os.Stderr)
 		if err != nil {
-			log.Printf("Level %d: error: %s\n", n, err)
+			log.Printf("Level %2d: error: %s\n", n, err)
 			break
 		}
 		if string(stdout[:9]) != "Password:" || len(stdout) != 42 || stdout[41] != 10 {
-			log.Printf("Level %d: invalid password: %s\n", n, stdout[9:])
+			log.Printf("Level %2d: invalid password: %s\n", n, stdout[9:])
 			break
 		}
 		password = string(stdout[9:41])
-		log.Printf("Level %d: Password: %s\n", n, password)
+		log.Printf("Level %2d: Password: %s\n", n, password)
 		stdout = stdout[:0]
 	}
 }
