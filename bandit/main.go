@@ -38,6 +38,8 @@ var commands = [...]string{
 	"echo -n \"Password:\";strings ./data.txt | grep \"==\" | cut -d' ' -f2 | tail -n1",
 	//level 10
 	"echo -n \"Password:\";base64 -d data.txt | sed -e 's/.* //'",
+	//level 11
+	"echo -n \"Password:\";cat data.txt | tr '[A-Za-z]' '[N-ZA-Mn-za-m]' | sed -e 's/.* //'",
 }
 
 func main() {
