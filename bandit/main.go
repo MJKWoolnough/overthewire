@@ -105,6 +105,12 @@ var commands = [...]string{
 		"done;" +
 		"cat \"$tmpFile\";" +
 		"rm -f \"tmpFile\";",
+	//level 24
+	"echo -n \"Password:\";" +
+		"for i in {0000..9999};do" +
+		"	echo %q\" $i\";" +
+		"	sleep 0.01s;" +
+		"done | nc 127.0.0.1 30002 | grep \"The password of user bandit25 is\" | cut -d' ' -f7",
 }
 
 func main() {
