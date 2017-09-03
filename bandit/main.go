@@ -86,6 +86,8 @@ var commands = [...]string{
 	"echo -n \"Password:\";cat readme",
 	//level 19
 	"echo -n \"Password:\";./bandit20-do cat /etc/bandit_pass/bandit20",
+	//level 20
+	"echo -n \"Password:\";(echo %q | nc -l 127.0.0.1 8080) & sleep 1s;./suconnect 8080 &> /dev/null",
 }
 
 func main() {
