@@ -16,7 +16,7 @@ Various string manipulations.
 
 ## Level 12
 
-A file compressed multiple times, with different methods, and finally hexdumped. Used xxd to reverse the hexdump, and used `file` in a loop to get the mimetype and decompress accordingly.
+A file compressed multiple times, with different methods, and finally hexdumped. Used `xxd` to reverse the hexdump, and used `file` in a loop to get the mimetype and decompress accordingly.
 
 ## Levels 13-15
 
