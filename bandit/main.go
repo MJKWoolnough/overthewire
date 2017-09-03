@@ -72,6 +72,14 @@ var commands = [...]string{
 	"echo -n \"Password:\";echo %q | nc 127.0.0.1 30000 | grep -v \"Correct\" | tr -d '\\r\\n';echo",
 	//level 15
 	"echo -n \"Password:\";echo %q | openssl s_client -ign_eof -connect 127.0.0.1:30001 2> /dev/null | grep -A1 \"Correct\" | grep -v \"Correct\" | tr -d '\\r\\n';echo",
+	//level 16
+	"echo -n \"Password:\";" +
+		"nmap -p 31000-32000 127.0.0.1 | grep \"/tcp\" | sed -e 's@^\\([0-9]*\\)/.*@\\1@' | while read port; do" +
+		"       (echo %q;sleep 2s) | openssl s_client -connect 127.0.0.1:\"$port\";" +
+		"done 2> /dev/null | grep -A 27 Correct | grep -v Correct > /tmp/private-123456789.key;" +
+		"chmod 600 /tmp/private-123456789.key;" +
+		"ssh -o StrictHostKeyChecking=no -i /tmp/private-123456789.key bandit17@127.0.0.1 cat /etc/bandit_pass/bandit17 2> /dev/null;" +
+		"rm -f /tmp/private-123456789.key;",
 }
 
 func main() {
