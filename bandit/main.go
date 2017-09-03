@@ -20,6 +20,8 @@ var commands = [...]string{
 	"echo -n \"Password:\";cat readme",
 	//level 1
 	"echo -n \"Password:\";cat ./-",
+	//level 2
+	"echo -n \"Password:\";cat \"spaces in this filename\"",
 }
 
 func main() {
