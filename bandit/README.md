@@ -60,4 +60,4 @@ Simple brute-force, although complicated a little by a weird timing issue on the
 
 ## Level 25
 
-Interesting solution to this, and recquired a different method in order to be able to send keystrokes instead of commands. Also needed to set the height of the terminal to force `more` to react appropriately.
+Interesting solution to this, and required a different method in order to be able to send keystrokes instead of commands. Also needed to set the height of the terminal to force `more` to react appropriately.
