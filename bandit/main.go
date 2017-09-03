@@ -40,6 +40,31 @@ var commands = [...]string{
 	"echo -n \"Password:\";base64 -d data.txt | sed -e 's/.* //'",
 	//level 11
 	"echo -n \"Password:\";cat data.txt | tr '[A-Za-z]' '[N-ZA-Mn-za-m]' | sed -e 's/.* //'",
+	//level 12
+	"echo -n \"Password:\";" +
+		"mkdir /tmp/otw-123456789;" +
+		"cd /tmp/otw-123456789;" +
+		"xxd -r ~/data.txt ./data.bin;" +
+		"while true; do" +
+		"       case \"$(file -b --mime-type data.bin)\" in" +
+		"       \"application/gzip\")" +
+		"               mv data.bin data.bin.gz;" +
+		"               gzip -d data.bin.gz;;" +
+		"       \"application/x-bzip2\")" +
+		"               mv data.bin data.bin.bz2;" +
+		"               bzip2 -d data.bin.bz2;;" +
+		"       \"application/x-tar\")" +
+		"               mv data.bin data.bin.tar;" +
+		"               filename=\"$(tar -tf data.bin.tar)\";" +
+		"               tar -xf data.bin.tar;" +
+		"               mv \"$filename\" data.bin;;" +
+		"       *)" +
+		"               cat data.bin | sed -e 's/.* //';" +
+		"               break;;" +
+		"       esac;" +
+		"done;" +
+		"cd;" +
+		"rm -rf /tmp/otw-123456789;",
 }
 
 func main() {
