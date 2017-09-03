@@ -28,6 +28,8 @@ var commands = [...]string{
 	"echo -n \"Password:\";find inhere -type f | while read file; do file \"$file\" | grep \"ASCII text\" > /dev/null && cat \"$file\" && break;done",
 	//level 5
 	"echo -n \"Password:\";find inhere -type f -size 1033c ! -executable  | while read file; do file \"$file\" | grep \"ASCII text\" > /dev/null && cat \"$file\" && break;done | tr -d ' '",
+	//level 6
+	"echo -n \"Password:\";find / -type f -group bandit6 -user bandit7 -size 33c | while read file; do file \"$file\" | grep \"ASCII text\" > /dev/null && cat \"$file\" && break;done | tr -d ' '",
 }
 
 func main() {
