@@ -46,11 +46,11 @@ func main() {
 			log.Printf("Level %d: error: %s\n", n, err)
 			break
 		}
-		if string(stdout[:9]) != "Password:" || len(stdout) != 42 {
+		if string(stdout[:9]) != "Password:" || len(stdout) != 42 || stdout[41] != 10 {
 			log.Printf("Level %d: invalid password: %s\n", n, stdout[9:])
 			break
 		}
-		password = string(stdout[9:])
+		password = string(stdout[9:41])
 		log.Printf("Level %d: Password: %s\n", n, password)
 		stdout = stdout[:0]
 	}
