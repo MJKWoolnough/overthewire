@@ -56,7 +56,8 @@ func (p Path) Grab(r http.Request) (string, error) {
 var levels = [...]Grabber{
 	Prefixed{"The password for natas1 is ", 32},
 	Prefixed{"The password for natas2 is ", 32},
-	Path{Prefixed{"natas3:", 32}, "/files/users.txt"}, // image @ /files/pixel.png, go to folder, find users.txt
+	Path{Prefixed{"natas3:", 32}, "/files/users.txt"},  // image @ /files/pixel.png, go to folder, find users.txt
+	Path{Prefixed{"natas4:", 32}, "/s3cr3t/users.txt"}, // robots.txt references /s3cr3t/, find users.txt
 }
 
 func main() {
