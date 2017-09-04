@@ -683,6 +683,14 @@ var levels = [...]Grabber{
 		},
 		SetData{"revelio": Text{""}},
 	},
+	Get{
+		Prefixed{
+			grab,
+			"Password: ",
+			32,
+		},
+		SetData{"passwd": Text{"11iloveyou"}},
+	},
 }
 
 func e(err error) {
