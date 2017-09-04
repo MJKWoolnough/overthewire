@@ -674,6 +674,15 @@ var levels = [...]Grabber{
 			},
 		},
 	},
+	//level 22
+	Get{
+		Prefixed{
+			grab,
+			"Password: ",
+			32,
+		},
+		SetData{"revelio": Text{""}},
+	},
 }
 
 func e(err error) {
@@ -694,6 +703,10 @@ func main() {
 
 	r := http.Request{
 		Header: make(http.Header),
+	}
+
+	http.DefaultClient.CheckRedirect = func(*http.Request, []*http.Request) error {
+		return http.ErrUseLastResponse
 	}
 
 	defer func() {
