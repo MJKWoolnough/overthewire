@@ -42,6 +42,7 @@ func (p Prefixed) Grab(r http.Request) (string, error) {
 
 var levels = [...]Grabber{
 	Prefixed{"The password for natas1 is ", 32},
+	Prefixed{"The password for natas2 is ", 32},
 }
 
 func main() {
