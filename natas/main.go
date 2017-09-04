@@ -683,6 +683,7 @@ var levels = [...]Grabber{
 		},
 		SetData{"revelio": Text{""}},
 	},
+	//level 23
 	Get{
 		Prefixed{
 			grab,
@@ -690,6 +691,15 @@ var levels = [...]Grabber{
 			32,
 		},
 		SetData{"passwd": Text{"11iloveyou"}},
+	},
+	//level 24
+	Get{
+		Prefixed{
+			grab,
+			"Password: ",
+			32,
+		},
+		SetData{"passwd[]": Text{}},
 	},
 }
 
