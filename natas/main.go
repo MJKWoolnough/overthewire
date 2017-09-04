@@ -370,6 +370,18 @@ var levels = [...]Grabber{
 			},
 		},
 	},
+	//level 14
+	Post{
+		Prefixed{
+			grab,
+			"The password for natas15 is ",
+			32,
+		},
+		SetData{
+			"username": Text{"\" OR password != \"\" #"},
+		},
+		nil,
+	},
 }
 
 func e(err error) {
