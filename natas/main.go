@@ -40,9 +40,23 @@ func (p Prefixed) Grab(r http.Request) (string, error) {
 	return string(buf[index+len(p.Prefix) : index+len(p.Prefix)+p.Length]), nil
 }
 
+type Path struct {
+	Grabber
+	Path string
+}
+
+func (p Path) Grab(r http.Request) (string, error) {
+	oldPath := r.URL.Path
+	r.URL.Path = p.Path
+	s, err := p.Grabber.Grab(r)
+	r.URL.Path = oldPath
+	return s, err
+}
+
 var levels = [...]Grabber{
 	Prefixed{"The password for natas1 is ", 32},
 	Prefixed{"The password for natas2 is ", 32},
+	Path{Prefixed{"natas3:", 32}, "/files/users.txt"}, // image @ /files/pixel.png, go to folder, find users.txt
 }
 
 func main() {
