@@ -76,6 +76,7 @@ var levels = [...]Grabber{
 	Path{Prefixed{"natas3:", 32}, "/files/users.txt"},  // image @ /files/pixel.png, go to folder, find users.txt
 	Path{Prefixed{"natas4:", 32}, "/s3cr3t/users.txt"}, // robots.txt references /s3cr3t/, find users.txt
 	Headers{Prefixed{"The password for natas5 is ", 32}, http.Header{"Referer": []string{"http://natas5.natas.labs.overthewire.org/"}}},
+	Headers{Prefixed{"The password for natas6 is ", 32}, http.Header{"Cookie": []string{"loggedin=1"}}},
 }
 
 func main() {
