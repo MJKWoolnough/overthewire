@@ -915,17 +915,18 @@ var levels = [...]Grabber{
 	//level 27
 	Get{
 		LoadAll{
-			BruteForceRange{ // Not actually brute-forcing a cookie, just submitting the post data over and over again in a timing attack.
-				Headers{
+			BruteForceRange{ // Used for a timing attack
+				Post{
 					Contains{
 						grab,
 						"Welcome natas28!",
 					},
 					SetData{},
+					nil,
 				},
 				&NumRange{0, 1000000},
-				"Cookie",
-				"a=",
+				"attempt",
+				"",
 				"",
 			},
 			Prefixed{
