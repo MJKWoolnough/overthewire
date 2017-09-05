@@ -194,3 +194,15 @@ func (l LoadAll) Grab(r http.Request) string {
 	}
 	return l[len(l)-1].Grab(r)
 }
+
+type PostBody struct {
+	Grabber
+	memio.Buffer
+}
+
+func (p PostBody) Grab(r http.Request) string {
+	r.Body = &p.Buffer
+	r.Method = http.MethodPost
+	r.ContentLength = int64(len(p.Buffer))
+	return Headers{p.Grabber, map[string]Grabber{"Content-Type": Text{"application/x-www-form-urlencoded"}}}.Grab(r)
+}
