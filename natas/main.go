@@ -796,6 +796,28 @@ var levels = [...]Grabber{
 			Text{"/img/password.php"},
 		},
 	},
+	//level 27
+	Get{
+		LoadAll{
+			BruteForceCookie{
+				Contains{
+					grab,
+					"Welcome natas28!",
+				},
+				&NumRange{0, 1000000},
+				"a",
+			},
+			Prefixed{
+				grab,
+				"[password] =&gt; ",
+				32,
+			},
+		},
+		SetData{
+			"username": Text{"natas28"},
+			"password": Text{"a"},
+		},
+	},
 }
 
 func e(err error) {
