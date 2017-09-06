@@ -206,3 +206,16 @@ func (p PostBody) Grab(r http.Request) string {
 	r.ContentLength = int64(len(p.Buffer))
 	return Headers{p.Grabber, map[string]Grabber{"Content-Type": Text{"application/x-www-form-urlencoded"}}}.Grab(r)
 }
+
+type Query struct {
+	Grabber
+	RawQuery Grabber
+}
+
+func (q Query) Grab(r http.Request) string {
+	oldQuery := r.URL.RawQuery
+	r.URL.RawQuery = q.RawQuery.Grab(r)
+	str := q.Grabber.Grab(r)
+	r.URL.RawPath = oldQuery
+	return str
+}
