@@ -178,7 +178,7 @@ func main() {
 		err := RunCommands(host, fmt.Sprintf(username, n), password, cmds, &stdout, os.Stderr)
 		if err != nil {
 			log.Printf("Level %2d: error: %s\n", n, err)
-			break
+			return
 		}
 		if string(stdout[:9]) != "Password:" || len(stdout) != 42 || stdout[41] != 10 {
 			log.Printf("Level %2d: invalid password: %s\n", n, stdout[9:])
