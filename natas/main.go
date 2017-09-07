@@ -266,7 +266,7 @@ var levels = [...]Grabber{
 									Text{"PHPSESSID="},
 									Random{
 										"Level21Cookie",
-										"abcdefghijklmnopqrstuvwxyz",
+										"abcdefghijklmnopqrstuvwxyz01234567890",
 										32,
 									},
 								},
@@ -293,7 +293,7 @@ var levels = [...]Grabber{
 				Text{"PHPSESSID="},
 				Random{
 					"Level21Cookie",
-					"abcdefghijklmnopqrstuvwxyz",
+					"abcdefghijklmnopqrstuvwxyz01234567890",
 					32,
 				},
 			},
