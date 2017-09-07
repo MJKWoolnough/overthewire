@@ -96,6 +96,14 @@ func (c Cut) Grab(r http.Request) string {
 	return parts[c.Slice]
 }
 
+type Trim struct {
+	Grabber
+}
+
+func (t Trim) Grab(r http.Request) string {
+	return strings.TrimSpace(t.Grabber.Grab(r))
+}
+
 type URLDecode struct {
 	Grabber
 }
