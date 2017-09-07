@@ -4,9 +4,11 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/MJKWoolnough/memio"
 )
@@ -104,6 +106,14 @@ func (u URLDecode) Grab(r http.Request) string {
 	return str
 }
 
+type URLEncode struct {
+	Grabber
+}
+
+func (u URLEncode) Grab(r http.Request) string {
+	return url.QueryEscape(u.Grabber.Grab(r))
+}
+
 type FindRepeating struct {
 	Grabber
 }
@@ -130,6 +140,9 @@ func (p PHPSerialize) Grab(r http.Request) string {
 		oName := "\x00" + p.ObjectName + "\x00" + name
 		fmt.Fprintf(&m, "s:%d:\"%s\";", len(oName), oName)
 		switch f := field.(type) {
+		case Grabber:
+			g := f.Grab(r)
+			fmt.Fprintf(&m, "s:%d:\"%s\";", len(g), g)
 		case string:
 			fmt.Fprintf(&m, "s:%d:\"%s\";", len(f), f)
 		default:
@@ -138,4 +151,28 @@ func (p PHPSerialize) Grab(r http.Request) string {
 	}
 	fmt.Fprintf(&m, "}")
 	return string(m)
+}
+
+var randomNames = map[string]string{}
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
+type Random struct {
+	Name, Chars string
+	Length      int
+}
+
+func (r Random) Grab(http.Request) string {
+	if str, ok := randomNames[r.Name]; ok {
+		return str
+	}
+	var b memio.Buffer
+	for i := 0; i < r.Length; i++ {
+		b.WriteByte(r.Chars[rand.Intn(len(r.Chars))])
+	}
+	str := string(b)
+	randomNames[r.Name] = str
+	return str
 }
