@@ -155,6 +155,16 @@ func (p PHPSerialize) Grab(r http.Request) string {
 
 var randomNames = map[string]string{}
 
+const RandomAlphaNum = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+var (
+	RandomHex             = RandomAlphaNum[:16]
+	RandomLetters         = RandomAlphaNum[10:]
+	RandomLowerLetters    = RandomLetters[:26]
+	RandomUpperLetters    = RandomLetters[26:]
+	RandomNumLowerLetters = RandomAlphaNum[:36]
+)
+
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }

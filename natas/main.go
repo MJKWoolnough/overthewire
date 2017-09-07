@@ -266,7 +266,7 @@ var levels = [...]Grabber{
 									Text{"PHPSESSID="},
 									Random{
 										"Level21Cookie",
-										"abcdefghijklmnopqrstuvwxyz0123456789",
+										RandomNumLowerLetters,
 										32,
 									},
 								},
@@ -293,7 +293,7 @@ var levels = [...]Grabber{
 				Text{"PHPSESSID="},
 				Random{
 					"Level21Cookie",
-					"abcdefghijklmnopqrstuvwxyz01234567890",
+					RandomNumLowerLetters,
 					32,
 				},
 			},
@@ -371,7 +371,7 @@ var levels = [...]Grabber{
 											Text{"img/"},
 											Random{
 												"Level26LogFile",
-												"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
+												RandomAlphaNum,
 												32,
 											},
 										},
@@ -397,7 +397,7 @@ var levels = [...]Grabber{
 					Text{"/img/"},
 					Random{
 						"Level26LogFile",
-						"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
+						RandomAlphaNum,
 						32,
 					},
 				},
