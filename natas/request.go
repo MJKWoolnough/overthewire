@@ -75,8 +75,7 @@ func (h Headers) Grab(r http.Request) string {
 	}
 	h.Set(r, newHeaders)
 	r.Header = newHeaders
-	p := h.Grabber.Grab(r)
-	return p
+	return h.Grabber.Grab(r)
 }
 
 type Post struct {
@@ -154,21 +153,13 @@ type Cookie struct {
 	Name string
 }
 
-var lastCookieURL, lastCookieName, lastCookieValue string
-
 func (c Cookie) Grab(r http.Request) string {
-	if r.URL.String() == lastCookieURL && c.Name == lastCookieName {
-		return lastCookieValue
-	}
-	lastCookieURL = r.URL.String()
-	lastCookieName = c.Name
 	r.Method = http.MethodHead
 	resp, err := http.DefaultClient.Do(&r)
 	e(err)
 	cookies := resp.Cookies()
 	for _, cookie := range cookies {
 		if cookie.Name == c.Name {
-			lastCookieValue = cookie.Value
 			return cookie.Value
 		}
 	}

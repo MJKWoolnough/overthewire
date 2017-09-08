@@ -161,7 +161,26 @@ func (p PHPSerialize) Grab(r http.Request) string {
 	return string(m)
 }
 
-var randomNames = map[string]string{}
+var vars = map[string]string{}
+
+type SetVar struct {
+	Grabber
+	Name string
+}
+
+func (s SetVar) Grab(r http.Request) string {
+	str := s.Grabber.Grab(r)
+	vars[s.Name] = str
+	return str
+}
+
+type GetVar struct {
+	Name string
+}
+
+func (g GetVar) Grab(http.Request) string {
+	return vars[g.Name]
+}
 
 const RandomAlphaNum = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
@@ -178,19 +197,14 @@ func init() {
 }
 
 type Random struct {
-	Name, Chars string
-	Length      int
+	Chars  string
+	Length int
 }
 
 func (r Random) Grab(http.Request) string {
-	if str, ok := randomNames[r.Name]; ok {
-		return str
-	}
 	var b memio.Buffer
 	for i := 0; i < r.Length; i++ {
 		b.WriteByte(r.Chars[rand.Intn(len(r.Chars))])
 	}
-	str := string(b)
-	randomNames[r.Name] = str
-	return str
+	return string(b)
 }
