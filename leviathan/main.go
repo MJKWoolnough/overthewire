@@ -19,7 +19,10 @@ const (
 )
 
 var (
-	commands = [...]string{}
+	commands = [...]string{
+		//level 0
+		"echo -n \"Password:\";grep leviathan .backup/bookmarks.html | sed -e 's/.* the password for leviathan1 is \\([a-zA-Z0-9]*\\).*/\\1/'",
+	}
 )
 
 func RunCommands(server, username, password, commands string, stdout, stderr io.Writer) error {
