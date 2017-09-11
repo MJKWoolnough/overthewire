@@ -1,12 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"os"
-	"strings"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 
@@ -19,36 +19,14 @@ const (
 )
 
 var (
-	commands = [...]string{
+	commands = [...][]string{
 		//level 0
-		"echo -n \"Password:\";grep leviathan .backup/bookmarks.html | sed -e 's/.* the password for leviathan1 is \\([a-zA-Z0-9]*\\).*/\\1/'",
+		[]string{"echo -n \"Password:\";grep leviathan .backup/bookmarks.html | sed -e 's/.* the password for leviathan1 is \\([a-zA-Z0-9]*\\).*/\\1/';exit\n"},
 	}
+	passwordBytes = []byte("Password:")
+	sValueBytes   = []byte("SVALUE:")
+	newLine       = []byte{'\n'}
 )
-
-func RunCommands(server, username, password, commands string, stdout, stderr io.Writer) error {
-	s, err := ssh.Dial("tcp", server, &ssh.ClientConfig{
-		User:            username,
-		Auth:            []ssh.AuthMethod{ssh.Password(password)},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	})
-	if err != nil {
-		return err
-	}
-	session, err := s.NewSession()
-	if err != nil {
-		return err
-	}
-
-	session.Stdout = stdout
-	session.Stderr = stderr
-
-	err = session.Run(commands)
-	session.Close()
-	if err != nil {
-		return err
-	}
-	return s.Close()
-}
 
 func main() {
 	var (
@@ -68,20 +46,84 @@ func main() {
 		n += int(level)
 		log.Printf("Level %2d: Sending Commands...\n", n)
 
-		if strings.Contains(cmds, "%q") {
-			cmds = fmt.Sprintf(cmds, password)
-		}
-
-		err := RunCommands(host, fmt.Sprintf(username, n), password, cmds, &stdout, os.Stderr)
+		s, err := ssh.Dial("tcp", host, &ssh.ClientConfig{
+			User:            fmt.Sprintf(username, n),
+			Auth:            []ssh.AuthMethod{ssh.Password(password)},
+			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		})
 		if err != nil {
 			log.Printf("Level %2d: error: %s\n", n, err)
-			break
-		}
-		if string(stdout[:9]) != "Password:" || len(stdout) != 20 || stdout[19] != 10 {
-			log.Printf("Level %2d: invalid password: %s\n", n, stdout[9:])
 			return
 		}
-		password = string(stdout[9:19])
+
+		session, err := s.NewSession()
+		if err != nil {
+			log.Printf("Level %2d: error: %s\n", n, err)
+			return
+		} else if err = session.RequestPty("vt100", 40, 80, ssh.TerminalModes{
+			ssh.ECHO:          0,
+			ssh.TTY_OP_ISPEED: 14400,
+			ssh.TTY_OP_OSPEED: 14400,
+		}); err != nil {
+			log.Printf("Level %2d: error: %s\n", n, err)
+			return
+		}
+
+		session.Stdout = &stdout
+		session.Stderr = os.Stderr
+		wc, _ := session.StdinPipe()
+		if err = session.Shell(); err != nil {
+			log.Printf("Level %2d: error: %s\n", n, err)
+			return
+		}
+
+		for _, cmd := range cmds {
+			time.Sleep(time.Second * 2)
+			if cmd == "%s\n" {
+				p := bytes.Index(stdout, sValueBytes)
+				if p < 0 {
+					log.Printf("Level %2d: error: could not find svalue\n", n)
+					return
+				}
+				l := bytes.Index(stdout[p:], newLine)
+				if l < 0 {
+					log.Printf("Level %2d: error: could not find end of svalue\n", n)
+					return
+				}
+				cmd = fmt.Sprintf(cmd, bytes.TrimSpace(stdout[p+len(sValueBytes):p+l]))
+			}
+			_, err = wc.Write([]byte(cmd))
+			if err != nil {
+				os.Stdout.Write(stdout)
+				log.Printf("Level %2d: error: %s\n", n, err)
+				return
+			}
+			time.Sleep(time.Second)
+		}
+
+		wc.Close()
+		session.Close()
+		s.Close()
+
+		p := bytes.Index(stdout, passwordBytes)
+		if p < 0 {
+			os.Stdout.Write(stdout)
+			log.Printf("Level %2d: error: could not find password\n", n)
+			return
+		}
+		l := bytes.Index(stdout[p:], newLine)
+		if l < 0 {
+			log.Printf("Level %2d: error: could not find end of password\n", n)
+			return
+		}
+
+		password = string(bytes.TrimSpace(stdout[p+len(passwordBytes) : p+l]))
+
+		if password == "" {
+			log.Printf("Level %2d: error: found empty password\n", n)
+			return
+		}
+
 		log.Printf("Level %2d: Password: %s\n", n, password)
 		stdout = stdout[:0]
 	}
