@@ -40,6 +40,12 @@ var (
 			"rm -rf \"$tmpDir\";" +
 			"exit\n",
 		},
+		//level 3
+		[]string{
+			"echo \"SVALUE:$(echo -e \"$(echo zzz | ltrace ./level3 2>&1 | grep zzz | cut -d'\"' -f4 | tr -d '\n')\")\";./level3;exit\n",
+			"%s\n",
+			"echo -n \"Password:\";cat /etc/leviathan_pass/leviathan4;exit\n",
+		},
 	}
 	passwordBytes = []byte("Password:")
 	sValueBytes   = []byte("SVALUE:")
