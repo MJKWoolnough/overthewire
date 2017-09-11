@@ -6,3 +6,4 @@ Complete so far:
 
  * Bandit (0-25)
  * Natas (0-31)
+ * Leviathan (0-6)
