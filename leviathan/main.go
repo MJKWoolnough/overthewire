@@ -46,6 +46,8 @@ var (
 			"%s\n",
 			"echo -n \"Password:\";cat /etc/leviathan_pass/leviathan4;exit\n",
 		},
+		//level 4
+		[]string{"echo -n \"Password:\";.trash/bin | tr -d ' ' | perl -lpe '$_=pack\"B*\",$_';exit\n"},
 	}
 	passwordBytes = []byte("Password:")
 	sValueBytes   = []byte("SVALUE:")
