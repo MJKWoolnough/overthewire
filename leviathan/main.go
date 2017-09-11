@@ -22,6 +22,12 @@ var (
 	commands = [...][]string{
 		//level 0
 		[]string{"echo -n \"Password:\";grep leviathan .backup/bookmarks.html | sed -e 's/.* the password for leviathan1 is \\([a-zA-Z0-9]*\\).*/\\1/';exit\n"},
+		//level 1
+		[]string{
+			"echo \"SVALUE:$(echo zzz | ltrace ./check 2>&1 | grep zzz | cut -d'\"' -f4 | tr -d '\\n')\";./check;exit\n",
+			"%s\n",
+			"echo -n \"Password:\";cat /etc/leviathan_pass/leviathan2;exit\n",
+		},
 	}
 	passwordBytes = []byte("Password:")
 	sValueBytes   = []byte("SVALUE:")
