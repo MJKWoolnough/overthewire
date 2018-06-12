@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MJKWoolnough/memio"
+	"vimagination.zapto.org/memio"
 )
 
 type Hex2Dec struct {

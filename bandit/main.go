@@ -1,4 +1,4 @@
-package main
+package main // import "vimagination.zapto.org/overthewire/bandit"
 
 import (
 	"bufio"
@@ -13,7 +13,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"github.com/MJKWoolnough/memio"
+	"vimagination.zapto.org/memio"
 )
 
 const (

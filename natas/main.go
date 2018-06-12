@@ -1,4 +1,4 @@
-package main
+package main // import "vimagination.zapto.org/overthewire/natas"
 
 import (
 	"flag"
@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/MJKWoolnough/memio"
+	"vimagination.zapto.org/memio"
 )
 
 var levels = [...]Grabber{
@@ -632,7 +632,7 @@ var levels = [...]Grabber{
 					memio.Buffer("1"),
 				},
 			},
-			Text{url.QueryEscape("ls|")},
+			Text{url.QueryEscape("index.pl")},
 		},
 		"<tr><th>",
 		32,

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/MJKWoolnough/errors"
-	"github.com/MJKWoolnough/memio"
+	"vimagination.zapto.org/errors"
+	"vimagination.zapto.org/memio"
 )
 
 var buf memio.Buffer
